@@ -1,0 +1,90 @@
+# Regenerable build output and dependency caches
+target/
+dist/
+node_modules/
+__pycache__/
+*.py[cod]
+*.pdb
+*.obj
+*.rs.bk
+
+# Local diagnostics and scratch files
+.tmp/
+.tmp-*
+*.log
+*.err
+*.out
+build_log.txt
+coverage/
+sbom.json
+
+# Local AI tools and IDE configuration
+.workbuddy/
+.workbuddy-ai/
+.cortexkit/
+.opencode/
+.qoder/
+.understand-anything/
+.mimosa/
+.trae/
+.vscode/
+.idea/
+spark-output/
+*.swp
+*.swo
+*~
+
+# Local Git worktrees (managed separately, never cleaned as build output)
+.worktrees/
+
+# Retired reference/experiment output; current assets live under native/assets
+/legacy/
+/vibe_images/
+参考图/
+docs/prototypes/**/.edge-profile/
+
+# Private environment and OS files
+.env
+.env.local
+.env.*.local
+.DS_Store
+Thumbs.db
+
+# Windows '> NUL' typo under Git Bash
+NUL
+
+# Local GraphFlow index cache
+.graphflow-cache/
+/graphflow-out/
+
+# Unexpanded workspace directory created by local tooling
+/[$][{]CODEX_PROJECT_DIR*/
+
+# Personal development context stays local (public documentation lives in docs/wiki)
+/AGENTS.md
+/AGENTS.override.md
+/CLAUDE.md
+/.rules/
+/.claude/
+/.codex/
+/.codegraph/
+/.codebase-memory/
+/.graphflow/
+/.qoder-credits/
+/docs/reports/
+/docs/prototypes/
+/docs/archive/
+/docs/design/
+/docs/ROADMAP.md
+/docs/TEST_PLAN.md
+/docs/memory-optimization-roadmap.md
+
+# Public documentation is the Wiki source; personal notes stay local.
+/docs/*
+!/docs/README.md
+!/docs/wiki/
+!/docs/wiki/**
+/.qoderignore
+/.zcodeignore
+/.githooks/
+/.github/copilot-instructions.md
