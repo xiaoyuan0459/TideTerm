@@ -1,0 +1,1 @@
+OpenSSL 3.6.3, Copyright 1998-2026 The OpenSSL Project Authors. Statically linked for SSH on Windows. Source: https://www.openssl.org/ and openssl-src 300.6.1+3.6.3.

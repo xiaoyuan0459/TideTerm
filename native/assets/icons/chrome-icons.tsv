@@ -1,0 +1,81 @@
+name	label	meaning
+pane_add	新建会话	终端窗口加号：创建一个会话
+pane_close	断开会话	终端窗口叉号：结束当前连接
+pane_reconnect	重新连接会话	终端窗口圆点徽标：重新打开当前连接
+refresh	刷新	顺时针箭头：重新读取
+link	连接	两个相扣链环：连接主机
+terminal	本机终端	窗口中的提示符与光标
+remote_host	远程主机终端（SSH）	带底座的显示器与 >_ 提示符
+pane_split	拆分窗格	窗口内分隔线与新增窗格徽标
+split_h	水平拆分（左右）	左右两格：Qt 水平方向拆分
+split_v	垂直拆分（上下）	上下两格：Qt 垂直方向拆分
+split	拆分面板	框内分隔线：拆出另一个面板
+zoom	放大 / 还原窗格	向外展开的边角
+fullscreen	全屏	四角展开到整个屏幕
+zoom_text	缩放文字	放大镜加号：修改显示比例
+float	浮动面板	独立窗口叠在主窗口外
+dock	停靠面板	箭头指向窗口内的停靠区
+sessions	保存的会话	会话列表与分组栏
+network	资源管理器 / 网络	计算机连接多个节点
+history	历史命令	时钟与回溯箭头
+transfer	传输	方向相反的上传 / 下载箭头
+send	发送面板	纸飞机：向目标发送内容
+info	会话信息	圆圈中的信息字母
+hdr_menu	自定义工具栏	六点工具阵列与展开箭头
+menu	标签页与连接菜单	三横线：打开条目列表
+more	更多操作	三个竖点：打开附加动作
+add	新增	加号：添加标签或发送段
+remove	移除发送段	减号：减少当前发送段
+close	关闭	叉号：关闭标签、视图或面板
+play	开始发送	向右实心三角：执行发送
+stop	停止发送	实心方块：停止当前发送
+clear_input	清空输入	退格轮廓中的叉号
+fold	收起	向上折角：收起内容
+down	展开 / 最近会话	向下折角：展开下方内容或列表
+chevron_right	转到 / 路径分隔	向右折角：进入目标
+up	上级目录	向上箭头：回到父目录
+copy	复制文本	带文本行的叠放纸张
+duplicate	复制会话 / 视图	叠放窗口加号：创建副本
+paste	粘贴	带夹子的剪贴板
+command	命令	命令提示符和光标
+select_all	全选	四角包围所有文本行
+prev	上一个命令	左向折角与起点线
+next	下一个命令	右向折角与终点线
+search	查找	放大镜
+highlight	高亮文本	荧光笔与高亮底线
+star	收藏	五角星：标记常用会话
+clear_scroll	清除回滚	历史文本行与删除叉号
+screen_clear	清屏	屏幕边框与橡皮擦
+reset	重置	逆时针箭头与原点
+sync	同步输入	两个窗口间的双向输入箭头
+trigger	会话触发器	闪电：条件触发动作
+binary	二进制数据	零与一
+log	会话日志	折角纸张中的记录行
+save	保存	软盘
+delete	删除	垃圾桶
+rename	重命名 / 编辑	铅笔
+palette	标签颜色	带色点与拇指孔的调色板
+reopen	重新打开	窗口与返回箭头
+folder	文件夹	带页签的文件夹
+file	文件	带折角和内容行的纸张
+new_dir	新建文件夹	文件夹加号
+new_file	新建文件	折角纸张加号
+open	打开会话 / 目录	已展开的文件夹
+move	移动到分组	文件夹与向外移动箭头
+download	下载 / 导出	向下箭头落入托盘
+upload	上传	向上箭头离开托盘
+path_term	在终端打开目录	终端窗口与路径箭头
+secure	SSH 安全连接	盾牌与验证勾号
+serial	串口连接	带针脚的串口连接器
+view	显示密码	睁开的眼睛
+view_off	隐藏密码	眼睛上的遮蔽斜线
+settings	设置	齿轮
+lock	锁屏	锁体与锁环
+minimize	最小化	窗口收成一条横线
+maximize	最大化	一个完整窗口
+restore	还原窗口	前后错开的两个窗口
+shell_cmd	Command Prompt	窗口边框和提示符：CMD 会话
+shell_powershell	PowerShell	蓝色斜底和提示符：PowerShell 会话
+shell_bash	Bash	六边形提示符：Bash 或 Git Bash 会话
+shell_zsh	Zsh	双提示符：Zsh 会话
+shell_fish	Fish	鱼形轮廓：Fish 会话

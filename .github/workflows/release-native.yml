@@ -1,0 +1,214 @@
+name: Release Native Qt
+
+on:
+  push:
+    branches: [master]
+    tags: ['v*']
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-native-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-windows:
+    name: Build Qt (Windows x86_64)
+    runs-on: windows-2025
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup-native
+      - name: Translation coverage
+        run: ./native/scripts/check-i18n-coverage.ps1
+      - name: C++ warning gate (forced Release build)
+        run: ./native/scripts/check-cpp-warnings.ps1 -Configuration release
+      - name: Smoke test
+        timeout-minutes: 2
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: ./native/target/release/native.exe --pty-selftest
+      - name: Generate SBOM
+        run: python scripts/generate-sbom.py
+      - name: Collect Rust dependency notices
+        run: python scripts/collect-third-party-licenses.py --manifest-path native/Cargo.toml --output "$env:RUNNER_TEMP/TideTerm-rust-licenses"
+      - name: Deploy Qt runtime and package
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $dist = Join-Path $env:RUNNER_TEMP 'TideTerm-windows-x86_64'
+          New-Item -ItemType Directory -Force -Path $dist | Out-Null
+          Copy-Item native/target/release/native.exe $dist/TideTerm.exe
+          $vsWhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+          $vsRoot = & $vsWhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if (-not $vsRoot) { throw 'MSVC installation is missing; cannot deploy its runtime' }
+          $env:VCINSTALLDIR = Join-Path $vsRoot.Trim() 'VC'
+          & "$env:QT_DIR/bin/windeployqt.exe" --release --compiler-runtime --include-plugins qoffscreen --dir $dist $dist/TideTerm.exe
+          if ($LASTEXITCODE -ne 0) { throw "windeployqt failed: $LASTEXITCODE" }
+          foreach ($file in @('vc_redist.x64.exe', 'Qt6Core.dll', 'Qt6Gui.dll', 'Qt6Widgets.dll', 'platforms/qwindows.dll', 'platforms/qoffscreen.dll')) {
+            if (-not (Test-Path (Join-Path $dist $file))) { throw "Package dependency is missing: $file" }
+          }
+          Copy-Item native/assets/icons/tideterm-icon.png $dist/tideterm-icon.png
+          Copy-Item native/assets/icons/tideterm-icon.ico $dist/tideterm-icon.ico
+          Copy-Item -Recurse native/i18n $dist/i18n
+          Copy-Item LICENSE $dist/LICENSE
+          Copy-Item THIRD_PARTY_NOTICES.md $dist/THIRD_PARTY_NOTICES.md
+          New-Item -ItemType Directory -Force -Path $dist/licenses/rust | Out-Null
+          Copy-Item -Path 'native/licenses/*' -Destination $dist/licenses -Recurse -Force
+          Copy-Item -Path "$env:RUNNER_TEMP/TideTerm-rust-licenses/*" -Destination $dist/licenses/rust -Recurse -Force
+          # Preserve notices for statically linked engine/transport code and embedded fonts.
+          $noticePaths = @(
+            'crates/tiderm-terminal/LICENSE-MIT',
+            'crates/tiderm-terminal/NOTICE.md',
+            'crates/tiderm-terminal/assets/fonts/JetBrainsMono-OFL.txt',
+            'crates/tiderm-terminal/assets/fonts/SymbolsNerdFont-LICENSE',
+            'vendor/alacritty_terminal/LICENSE-APACHE',
+            'vendor/portable-pty/LICENSE.md',
+            'vendor/portable-pty/TIDETERM-PATCH.md',
+            'vendor/vte/LICENSE-MIT',
+            'vendor/vte/LICENSE-APACHE',
+            'vendor/libssh2-sys/LICENSE-MIT',
+            'vendor/libssh2-sys/LICENSE-APACHE',
+            'vendor/libssh2-sys/libssh2/COPYING'
+          )
+          foreach ($notice in $noticePaths) {
+            $destination = Join-Path (Join-Path $dist 'licenses/source-notices') $notice
+            New-Item -ItemType Directory -Force -Path (Split-Path -Parent $destination) | Out-Null
+            Copy-Item -LiteralPath $notice -Destination $destination
+          }
+          Copy-Item LICENSE $dist/licenses/source-notices/LICENSE
+          $notices = (Get-Content THIRD_PARTY_NOTICES.md -Raw).Replace('](crates/', '](licenses/source-notices/crates/').Replace('](vendor/', '](licenses/source-notices/vendor/').Replace('](native/licenses/', '](licenses/')
+          $notices | Set-Content -LiteralPath (Join-Path $dist 'THIRD_PARTY_NOTICES.md') -Encoding utf8
+          $qtSbom = Join-Path $dist 'licenses/qt/runtime-sbom'
+          New-Item -ItemType Directory -Force -Path $qtSbom | Out-Null
+          foreach ($module in @('qtbase','qtsvg')) {
+            $sbom = Join-Path $env:QT_DIR "sbom/$module-6.12.0.cdx.json"
+            if (-not (Test-Path -LiteralPath $sbom)) { throw "Qt runtime SBOM is missing: $module" }
+            Copy-Item -LiteralPath $sbom -Destination $qtSbom
+          }
+          if (-not (Test-Path (Join-Path $dist 'licenses/qt/qtbase/LGPL-3.0-only.txt'))) { throw 'Qt license texts are missing' }
+          Copy-Item sbom.json $dist/sbom.json
+          if (-not (Test-Path (Join-Path $dist 'i18n/tideterm_en.ts'))) { throw 'English translation is missing' }
+          # Verify deployed DLLs/plugins without the SDK's PATH or plugin fallback.
+          $originalPath = $env:PATH
+          $originalPlugins = $env:QT_PLUGIN_PATH
+          $originalPlatformPlugins = $env:QT_QPA_PLATFORM_PLUGIN_PATH
+          $logs = Join-Path (Get-Location) 'native/target/diagnostics/package-selftests'
+          New-Item -ItemType Directory -Force $logs | Out-Null
+          try {
+            $env:PATH = (($env:PATH -split ';') | Where-Object { -not $_.StartsWith($env:QT_DIR, [StringComparison]::OrdinalIgnoreCase) }) -join ';'
+            $env:QT_PLUGIN_PATH = $dist
+            $env:QT_QPA_PLATFORM_PLUGIN_PATH = Join-Path $dist 'platforms'
+            $env:QT_QPA_PLATFORM = 'offscreen'
+            Push-Location $dist
+            try {
+              foreach ($flag in @('--pty-selftest', '--i18n-selftest')) {
+                $stdout = Join-Path $logs "$flag.log"
+                $stderr = Join-Path $logs "$flag.stderr.log"
+                $process = Start-Process -FilePath (Join-Path $dist 'TideTerm.exe') -ArgumentList $flag -WindowStyle Hidden -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+                try {
+                  if (-not $process.WaitForExit(60000)) {
+                    $process.Kill($true)
+                    throw "Packaged self-test timed out: $flag"
+                  }
+                  $process.WaitForExit()
+                  Get-Content $stdout
+                  Get-Content $stderr
+                  if ($process.ExitCode -ne 0) { throw "Packaged self-test failed: $flag exit=$($process.ExitCode)" }
+                } finally { $process.Dispose() }
+              }
+            } finally { Pop-Location }
+          } finally {
+            $env:PATH = $originalPath
+            $env:QT_PLUGIN_PATH = $originalPlugins
+            if ($null -eq $originalPlatformPlugins) { Remove-Item Env:QT_QPA_PLATFORM_PLUGIN_PATH -ErrorAction SilentlyContinue }
+            else { $env:QT_QPA_PLATFORM_PLUGIN_PATH = $originalPlatformPlugins }
+          }
+          "commit=$env:GITHUB_SHA`nsource=https://github.com/$env:GITHUB_REPOSITORY/tree/$env:GITHUB_SHA`nqt=6.12.0`nrust=$(rustc --version)" | Set-Content -Encoding utf8 build-info.txt
+          Copy-Item build-info.txt $dist/build-info.txt
+          Compress-Archive -Path "$dist/*" -DestinationPath TideTerm-windows-x86_64.zip
+          $hash = (Get-FileHash TideTerm-windows-x86_64.zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash *TideTerm-windows-x86_64.zip" | Set-Content -Encoding ascii SHA256SUMS
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: tideterm-native-windows-x86_64
+          path: |
+            TideTerm-windows-x86_64.zip
+            SHA256SUMS
+            sbom.json
+            build-info.txt
+          if-no-files-found: error
+          retention-days: 30
+      - name: Upload build diagnostics
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: qt-release-diagnostics-${{ github.run_id }}
+          path: native/target/diagnostics/**/*.log
+          if-no-files-found: warn
+          retention-days: 14
+
+  verify-windows-package:
+    name: Verify ZIP on a fresh Windows runner
+    needs: build-windows
+    runs-on: windows-2025
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      # No source checkout or Qt installation in this job.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: tideterm-native-windows-x86_64
+          path: ${{ runner.temp }}/TideTerm-download
+      - name: Verify checksum and run the extracted package
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $download = Join-Path $env:RUNNER_TEMP 'TideTerm-download'
+          $zip = Join-Path $download 'TideTerm-windows-x86_64.zip'
+          $checksum = (Get-Content -LiteralPath (Join-Path $download 'SHA256SUMS') -Raw).Trim()
+          if ($checksum -notmatch '^([0-9a-f]{64}) \*TideTerm-windows-x86_64\.zip$') { throw 'Invalid checksum manifest' }
+          $expected = $Matches[1]
+          if ((Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant() -ne $expected) { throw 'ZIP checksum mismatch' }
+          if (Test-Path (Join-Path $env:GITHUB_WORKSPACE 'native/Cargo.toml')) { throw 'Package verification must not have a source checkout' }
+          $dist = Join-Path $env:RUNNER_TEMP 'TideTerm-unpacked'
+          Expand-Archive -LiteralPath $zip -DestinationPath $dist
+          foreach ($file in @('TideTerm.exe','Qt6Core.dll','Qt6Gui.dll','Qt6Widgets.dll','platforms/qwindows.dll','platforms/qoffscreen.dll','i18n/tideterm_en.ts','THIRD_PARTY_NOTICES.md','build-info.txt','licenses/rust/packages.json','licenses/qt/qtbase/LGPL-3.0-only.txt')) {
+            if (-not (Test-Path -LiteralPath (Join-Path $dist $file))) { throw "Package dependency is missing: $file" }
+          }
+          $logs = Join-Path $env:RUNNER_TEMP 'TideTerm-package-verification'
+          New-Item -ItemType Directory -Force -Path $logs | Out-Null
+          $env:QT_QPA_PLATFORM = 'offscreen'
+          $env:QT_PLUGIN_PATH = $dist
+          $env:QT_QPA_PLATFORM_PLUGIN_PATH = Join-Path $dist 'platforms'
+          $env:PATH = (($env:PATH -split ';') | Where-Object { $_ -notmatch '(?i)[\\/]Qt[\\/]' }) -join ';'
+          Remove-Item Env:QT_DIR,Env:QT_ROOT_DIR -ErrorAction SilentlyContinue
+          foreach ($flag in @('--pty-selftest','--i18n-selftest')) {
+            $stdout = Join-Path $logs "$flag.log"
+            $stderr = Join-Path $logs "$flag.stderr.log"
+            $process = Start-Process -FilePath (Join-Path $dist 'TideTerm.exe') -WorkingDirectory $dist -ArgumentList $flag -WindowStyle Hidden -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+            try {
+              if (-not $process.WaitForExit(60000)) { $process.Kill($true); throw "Package self-test timed out: $flag" }
+              $process.WaitForExit()
+              Get-Content -LiteralPath $stdout
+              Get-Content -LiteralPath $stderr
+              if ($process.ExitCode -ne 0) { throw "Package self-test failed: $flag exit=$($process.ExitCode)" }
+            } finally { $process.Dispose() }
+          }
+          "Verified Windows ZIP SHA256: $expected" | Add-Content $env:GITHUB_STEP_SUMMARY
+      - name: Upload package verification logs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: windows-package-verification-${{ github.run_id }}
+          path: ${{ runner.temp }}/TideTerm-package-verification
+          if-no-files-found: warn
+          retention-days: 14

@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "reviewed": "2026-10-17",
+  "families": [
+    {
+      "command": "git", "source": "https://git-scm.com/docs", "platform": "Windows / Linux / macOS", "reference": "Git 2.x; documented options only; installed version unverified",
+      "rules": [
+        {"path": "status", "description": "查看工作区状态", "source": "https://git-scm.com/docs/git-status", "argument": "", "options": [{"token":"--short","argument":""},{"token":"--branch","argument":""}]},
+        {"path": "log", "description": "查看提交记录", "source": "https://git-scm.com/docs/git-log", "argument": "revision", "options": [{"token":"--oneline","argument":""},{"token":"--max-count","argument":"count"},{"token":"--stat","argument":""}]}
+      ]
+    },
+    {
+      "command": "docker", "source": "https://docs.docker.com/reference/cli/docker/", "platform": "Windows / Linux / macOS CLI", "reference": "Docker CLI unversioned reference; installed version unverified",
+      "rules": [
+        {"path": "logs", "description": "查看容器日志", "source": "https://docs.docker.com/reference/cli/docker/container/logs/", "argument": "container", "options": [{"token":"--follow","argument":""},{"token":"--tail","argument":"count"},{"token":"--timestamps","argument":""}]},
+        {"path": "container logs", "description": "查看容器日志", "source": "https://docs.docker.com/reference/cli/docker/container/logs/", "argument": "container", "options": [{"token":"--follow","argument":""},{"token":"--tail","argument":"count"}]},
+        {"path": "compose logs", "description": "查看服务日志", "source": "https://docs.docker.com/reference/cli/docker/compose/logs/", "argument": "service", "options": [{"token":"--follow","argument":""},{"token":"--tail","argument":"count"}]}
+      ]
+    },
+    {
+      "command": "kubectl", "source": "https://kubernetes.io/docs/reference/kubectl/", "platform": "Windows / Linux / macOS CLI", "reference": "Kubernetes kubectl unversioned reference; cluster/client version unverified",
+      "rules": [
+        {"path": "get", "description": "查看集群资源", "source": "https://kubernetes.io/docs/reference/kubectl/generated/kubectl_get/", "argument": "resource", "options": [{"token":"--namespace","argument":"namespace"},{"token":"--output","argument":"format"},{"token":"--all-namespaces","argument":""}]}
+      ]
+    }
+  ]
+}

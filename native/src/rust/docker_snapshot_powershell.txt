@@ -1,0 +1,16 @@
+& { $PSModuleAutoLoadingPreference='None'; $e=0; $r=''; $process=$null;
+try { $docker=$ExecutionContext.SessionState.InvokeCommand.GetCommand('docker',[Management.Automation.CommandTypes]::Application);
+if (!$docker) { throw 'Docker unavailable' }; $si=[Diagnostics.ProcessStartInfo]::new(); $si.FileName=$docker.Path;
+$si.Arguments='--context CONTEXT container ls --all --no-trunc --last 33 --format "{{json .ID}}|{{json .Names}}"';
+$si.WorkingDirectory=$ExecutionContext.SessionState.Path.CurrentFileSystemLocation.ProviderPath;
+$si.UseShellExecute=$false; $si.CreateNoWindow=$true; $si.RedirectStandardOutput=$true;
+$si.StandardOutputEncoding=[Text.UTF8Encoding]::new($false,$true);
+$process=[Diagnostics.Process]::new(); $process.StartInfo=$si; $text=[Text.StringBuilder]::new(); $over=$false;
+if (!$process.Start()) { throw 'Docker start failed' };
+while (($ch=$process.StandardOutput.Read()) -ne -1) { if ($text.Length -le 6144) { [void]$text.Append([char]$ch) } else { $over=$true } };
+$process.WaitForExit(); if ($process.ExitCode -ne 0) { throw 'Docker failed' };
+$r=$text.ToString().Replace("`r`n","`n").TrimEnd([char]10);
+if ($over -or [Text.Encoding]::UTF8.GetByteCount($r) -gt 6144) { $e=2; throw 'Docker budget' };
+} catch { if ($e -eq 0) { $e=1 }; $r='' } finally { if ($process) { $process.Dispose() } };
+$s=if ([IO.Path]::PathSeparator -eq ';') {'w'} else {'p'};
+[Console]::Write(([char]27+']777;tideterm-env;4;TOKEN;'+$s+';'+$e+';CONTEXT;'+[BitConverter]::ToString([Text.Encoding]::UTF8.GetBytes($r)).Replace('-','')+[char]7)) }

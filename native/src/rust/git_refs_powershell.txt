@@ -1,0 +1,20 @@
+& { $PSModuleAutoLoadingPreference='None'; $e=0; $repo=''; $refs='';
+try { $git=$ExecutionContext.SessionState.InvokeCommand.GetCommand('git',[Management.Automation.CommandTypes]::Application);
+if (!$git) { throw 'Git unavailable' };
+function tt_git([string]$arguments,[int]$limit) { $si=[Diagnostics.ProcessStartInfo]::new(); $si.FileName=$git.Path;
+$si.Arguments='--no-pager --no-replace-objects -c core.fsmonitor=false '+$arguments;
+$si.WorkingDirectory=$ExecutionContext.SessionState.Path.CurrentFileSystemLocation.ProviderPath;
+$si.UseShellExecute=$false; $si.CreateNoWindow=$true; $si.RedirectStandardOutput=$true;
+$si.StandardOutputEncoding=[Text.UTF8Encoding]::new($false,$true);
+$si.EnvironmentVariables['GIT_OPTIONAL_LOCKS']='0'; $si.EnvironmentVariables['GIT_NO_LAZY_FETCH']='1'; $si.EnvironmentVariables['GIT_TERMINAL_PROMPT']='0';
+$process=[Diagnostics.Process]::new(); $process.StartInfo=$si; $text=[Text.StringBuilder]::new(); $over=$false;
+try { if (!$process.Start()) { throw 'Git start failed' }; while (($ch=$process.StandardOutput.Read()) -ne -1) { if ($text.Length -le $limit) { [void]$text.Append([char]$ch) } else { $over=$true } };
+$process.WaitForExit(); if ($process.ExitCode -ne 0) { throw 'Git failed' };
+$value=$text.ToString().Replace("`r`n","`n").TrimEnd([char]10);
+if ($over -or [Text.Encoding]::UTF8.GetByteCount($value) -gt $limit) { throw 'Git budget' }; return $value;
+} finally { $process.Dispose() } };
+$repo=tt_git 'rev-parse --absolute-git-dir' 2048; $e=2;
+$refs=tt_git 'for-each-ref --format=%(refname) --sort=refname --count=65 refs/heads/ refs/tags/' 4096; $e=0;
+} catch { if ($e -eq 0) { $e=1 }; $repo=''; $refs='' };
+$s=if ([IO.Path]::PathSeparator -eq ';') {'w'} else {'p'};
+[Console]::Write(([char]27+']777;tideterm-env;3;TOKEN;'+$s+';'+$e+';'+[BitConverter]::ToString([Text.Encoding]::UTF8.GetBytes($repo)).Replace('-','')+';'+[BitConverter]::ToString([Text.Encoding]::UTF8.GetBytes($refs)).Replace('-','')+[char]7)) }

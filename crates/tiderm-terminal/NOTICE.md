@@ -1,0 +1,13 @@
+# TideTerm terminal engine provenance
+
+Derived from [Eyalm321/Hyperpanes](https://github.com/Eyalm321/hyperpanes), `rs/crates/terminal-widget`.
+
+- Upstream copyright: **Copyright (c) 2026 Eyalm321**.
+- Original license: [MIT](LICENSE-MIT), recovered verbatim from the imported fork commit.
+- Imported fork: `https://github.com/heart258/hyperpanes.git`, branch `tide-mod`, commit `d3f17e6e698cf9834f9a168d1c6af61e8a6510b5`.
+- TideTerm vendoring commit: `76a2dd9`; moved to this path in `b592494`.
+- TideTerm changes include removal of the Slint dependency, Qt drawing records, compressed history, reading/selection/folding/marking and bounded command/source mapping. They are covered by the repository's [Apache-2.0 license](../../LICENSE). Preserve the original MIT notice when distributing the derived code.
+
+The current crate replaces the old vendor package. TideTerm independently implements input encoding, the injected host-service boundary, viewport-state control and the per-grid parser-event mailbox. The mailbox replaces the four-channel proxy; it coalesces title/bell notifications and delivers an explicit empty-title update when the parser restores an unset title. Protocol bytes and clipboard operations retain their respective ordering and existing host boundary. Live-cell projection and compressed-history encoding now share TideTerm's CellStyle adapter, retaining the existing palette and faint-blending semantics. Existing TideTerm features and retained Hyperpanes-derived grid/rendering modules have been integrated and split by responsibility. Active-screen history and numbering are scoped at this adapter boundary; Alacritty remains the terminal-mode authority. This is not a claim that every module was rewritten from scratch. Local display clearing also uses TideTerm's direct-mutation adapter. Active-document history and rendering caches retire together; alternate-screen clearing retains the primary document, and a whole visible screen can be archived before restoring the raw-window limit. The output-lifecycle adapter also observes executed Alacritty/VTE Handler operations instead of matching clear/reset bytes. ED3 and RIS retire compressed and deferred history plus rendering caches at the parser position; peer ED2 preserves whole-screen archival. Pane retirement follows executed mutations, including deferred synchronized output. The original MIT notice continues to apply to retained derived portions.
+
+Embedded [JetBrains Mono](assets/fonts/JetBrainsMono-OFL.txt) and [Symbols Nerd Font](assets/fonts/SymbolsNerdFont-LICENSE) retain their separate font licenses.

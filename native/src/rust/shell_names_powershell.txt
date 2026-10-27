@@ -1,0 +1,11 @@
+& { $PSModuleAutoLoadingPreference='None'; $tt_out=[Collections.Generic.List[string]]::new(); $tt_seen=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase); $tt_bytes=0; $tt_cut=0; $tt_error=0; $tt_scan=0;
+try { foreach ($tt_c in $ExecutionContext.SessionState.InvokeCommand.GetCommands('__PREFIX__*',[System.Management.Automation.CommandTypes]::All,$true)) {
+$tt_scan++; if ($tt_scan -gt 4096) { $tt_cut=1; break }; $tt_n=[string]$tt_c.Name;
+if ($tt_n -cnotmatch '^[A-Za-z_][A-Za-z0-9_.-]{0,127}$') { $tt_cut=1; continue }; if (-not $tt_seen.Add($tt_n)) { continue };
+$tt_kind=switch ([string]$tt_c.CommandType) { 'Alias' {1} 'Function' {2} 'Cmdlet' {7} 'Application' {5} 'ExternalScript' {6} 'Filter' {8} 'Configuration' {9} default {0} };
+if ($tt_kind -eq 0) { $tt_cut=1; continue }; $tt_b=[Text.Encoding]::UTF8.GetBytes($tt_n);
+if ($tt_out.Count -ge 256 -or $tt_bytes+$tt_b.Length -gt 6144) { $tt_cut=1; break };
+$tt_out.Add(([string]$tt_kind+':'+[BitConverter]::ToString($tt_b).Replace('-',''))); $tt_bytes+=$tt_b.Length;
+} } catch { $tt_error=1; $tt_out.Clear() };
+$tt_platform=if ([IO.Path]::PathSeparator -eq ';') {'w'} elseif ($IsLinux) {'p-l'} elseif ($IsMacOS) {'p-m'} else {'p'};
+[Console]::Write(([char]27+']777;tideterm-env;N;__TOKEN__;'+$tt_platform+';'+$tt_error+';'+$tt_cut+';'+[string]::Join(',',$tt_out)+[char]7)) }

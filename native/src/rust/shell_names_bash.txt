@@ -1,0 +1,17 @@
+(LC_ALL=C; _tt_platform=b; case ${OSTYPE-} in linux*) _tt_platform=b-l;; darwin*) _tt_platform=b-m;; msys*|cygwin*) _tt_platform=b-w;; esac; _tt_out=''; _tt_cut=0; _tt_bytes=0; _tt_count=0; _tt_scan=0;
+if (( BASH_VERSINFO[0] < 4 )); then
+builtin printf '\033]777;tideterm-env;N;__TOKEN__;%s;1;0;\007' "$_tt_platform";
+else
+builtin declare -A _tt_seen; _tt_seen=();
+while IFS= builtin read -r _tt_name; do
+((_tt_scan+=1)); if (( _tt_scan > 4096 )); then _tt_cut=1; break; fi;
+if [[ ! $_tt_name =~ ^[A-Za-z_][A-Za-z0-9_.-]*$ || ${#_tt_name} -gt 128 ]]; then _tt_cut=1; continue; fi;
+if [[ ${_tt_seen[$_tt_name]+yes} ]]; then continue; fi; _tt_seen[$_tt_name]=1;
+_tt_type=$(builtin type -t -- "$_tt_name" 2>/dev/null);
+case $_tt_type in alias) _tt_kind=1;; function) _tt_kind=2;; builtin) _tt_kind=3;; keyword) _tt_kind=4;; file) _tt_kind=5;; *) _tt_cut=1; continue;; esac;
+if (( _tt_count >= 256 || _tt_bytes + ${#_tt_name} > 6144 )); then _tt_cut=1; break; fi;
+_tt_hex=''; for ((_tt_i=0;_tt_i<${#_tt_name};_tt_i++)); do builtin printf -v _tt_one '%02x' "'${_tt_name:_tt_i:1}"; _tt_hex+=$_tt_one; done;
+_tt_out+="$_tt_kind:$_tt_hex,"; ((_tt_count+=1)); ((_tt_bytes+=${#_tt_name}));
+done < <(builtin compgen -c -- '__PREFIX__');
+builtin printf '\033]777;tideterm-env;N;__TOKEN__;%s;0;%s;%s\007' "$_tt_platform" "$_tt_cut" "$_tt_out";
+fi)

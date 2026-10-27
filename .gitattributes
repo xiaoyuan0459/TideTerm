@@ -1,0 +1,35 @@
+# TideTerm Git attributes
+# Normalize line endings: text files → LF in repo, native on checkout
+
+* text=auto
+
+# Explicit declarations
+*.ts    text eol=lf
+*.tsx   text eol=lf
+*.js    text eol=lf
+*.json  text eol=lf
+*.css   text eol=lf
+*.html  text eol=lf
+*.md    text eol=lf
+*.toml  text eol=lf
+*.yaml  text eol=lf
+*.yml   text eol=lf
+*.sh    text eol=lf
+*.rs    text eol=lf
+*.py    text eol=lf
+native/licenses/qt/** text eol=lf
+.gitignore text eol=lf
+
+# Binary files
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.woff  binary
+*.woff2 binary
+*.eot   binary
+*.ttf   binary
+*.otf   binary
+*.wasm  binary
+*.pdb   binary

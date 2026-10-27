@@ -1,0 +1,26 @@
+[package]
+name = "logstore-probe"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.99"
+publish = false
+
+# G4-A 探针（ADR-013）：只做 Rust 侧 —— 语料生成 + 闸门测量（G4-2/3/5/6/7/10）。
+# 共池仲裁的行为门禁（G4-13/14/15）在 tests/arbiter.rs。
+# 终端侧契约（G4-11）与依赖洁净度（G4-12）在
+# crates/tiderm-terminal 的 tests 与 cargo tree 里。
+
+[dependencies]
+tiderm-textdoc = { path = "../../crates/tiderm-textdoc" }
+
+[dev-dependencies]
+# MemRingProvider/ScrollbackStore 只供仲裁契约使用，不进入 CLI 的普通依赖。
+tiderm-terminal = { path = "../../crates/tiderm-terminal", default-features = false }
+
+[[bin]]
+name = "logstore-probe"
+path = "src/main.rs"
+
+# 独立工作区也使用与 Native/终端引擎一致的 VTE 修订。
+[patch.crates-io]
+vte = { path = "../../vendor/vte" }

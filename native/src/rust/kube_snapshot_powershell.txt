@@ -1,0 +1,11 @@
+& { $PSModuleAutoLoadingPreference='None'; $e=0; $r=''; $process=$null;
+try { $c=[Text.Encoding]::UTF8.GetString([Convert]::FromHexString('CFGHEX')); $x=[Text.Encoding]::UTF8.GetString([Convert]::FromHexString('CTXHEX')); $n=[Text.Encoding]::UTF8.GetString([Convert]::FromHexString('NSHEX'));
+$cli=$ExecutionContext.SessionState.InvokeCommand.GetCommand('kubectl',[Management.Automation.CommandTypes]::Application); if (!$cli) { throw 'kubectl unavailable' };
+$si=[Diagnostics.ProcessStartInfo]::new(); $si.FileName=$cli.Path; $si.WorkingDirectory=$ExecutionContext.SessionState.Path.CurrentFileSystemLocation.ProviderPath;
+foreach ($a in @('--kubeconfig',$c,'--context',$x,'--namespace',$n,'--request-timeout=5s','get','RESOURCE','--chunk-size=0','-o','go-template={{range $i, $p := .items}}{{if lt $i 33}}{{printf "%q|%q|%q\n" $p.metadata.uid $p.metadata.name $p.metadata.namespace}}{{end}}{{end}}')) { $si.ArgumentList.Add($a) };
+$si.EnvironmentVariables['KUBECTL_KUBERC']='false'; $si.UseShellExecute=$false; $si.CreateNoWindow=$true; $si.RedirectStandardOutput=$true; $si.RedirectStandardError=$true; $si.StandardOutputEncoding=[Text.UTF8Encoding]::new($false,$true);
+$process=[Diagnostics.Process]::new(); $process.StartInfo=$si; $text=[Text.StringBuilder]::new(); $over=$false; if (!$process.Start()) { throw 'kubectl start failed' }; $drain=$process.StandardError.BaseStream.CopyToAsync([IO.Stream]::Null);
+while (($ch=$process.StandardOutput.Read()) -ne -1) { if ($text.Length -le 6144) { [void]$text.Append([char]$ch) } else { $over=$true } }; $process.WaitForExit(); [void]$drain.GetAwaiter().GetResult(); if ($process.ExitCode -ne 0) { throw 'kubectl failed' };
+$r=$text.ToString().Replace("`r`n","`n").TrimEnd([char]10); if ($over -or [Text.Encoding]::UTF8.GetByteCount($r) -gt 6144) { $e=2; throw 'kubectl budget' };
+} catch { if ($e -eq 0) { $e=1 }; $r='' } finally { if ($process) { $process.Dispose() } };
+$s=if ([IO.Path]::PathSeparator -eq ';') {'w'} else {'p'}; [Console]::Write(([char]27+']777;tideterm-env;5;TOKEN;'+$s+';'+$e+';SCOPEHEX;'+[BitConverter]::ToString([Text.Encoding]::UTF8.GetBytes($r)).Replace('-','')+[char]7)) }
