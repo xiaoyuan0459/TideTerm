@@ -75,13 +75,33 @@ fn draft(source: u32) -> Option<(String, u64)> {
                 None => query.is_empty() && st.preview_revision != pending.output,
             };
             if !acknowledged {
-                return None;
+                return redrawn_powershell_edit(st, &query)
+                    .map(|query| (query, st.preview_revision));
             }
             st.terminal_input = None;
         }
         Some((query, st.preview_revision))
     })
     .flatten()
+}
+
+// ConPTY may add display padding after a wrapped PowerShell prompt. A literal
+// edit already tracked at that prompt remains authoritative until a normal echo
+// or the next editor action; control keys never supply such an expected draft.
+fn redrawn_powershell_edit(st: &TermState, visible: &str) -> Option<String> {
+    use super::store::session_config::SessionKind;
+    if !cfg!(windows)
+        || st.config.kind != SessionKind::Local
+        || super::completion_shell::configured_kind(st) != 2
+        || st.pane.has_command_input_markers()
+        || st.pane.command_input_active()
+    {
+        return None;
+    }
+    let expected = st.terminal_input.as_ref()?.expected.as_ref()?;
+    let padding = visible.strip_suffix(expected.as_str())?;
+    (!expected.is_empty() && !padding.is_empty() && padding.bytes().all(|b| b == b' '))
+        .then(|| expected.clone())
 }
 
 /// Track edits only at a recognized, visible prompt. This bounded transient

@@ -314,10 +314,10 @@ fn powershell_narrow_draft_survives_conpty_redraw() {
         completion::terminal_completion_query(id).query == draft
     });
     for cols in [24, 16, 36, 20] {
-        let before = term::with_tab(id, |st| st.preview_revision);
         resize(cols);
-        // ConPTY repaints the visible prompt line on resize without replaying
-        // OSC B. Require that repaint to be delivered before checking the draft.
+        // Local resize invalidates the preview synchronously; only subsequent
+        // backend polling consumes the queued ConPTY prompt repaint.
+        let before = term::with_tab(id, |st| st.preview_revision);
         let repainted = super::term_net_tests::wait_until(REAL_SHELL_TIMEOUT, || {
             term::term_poll(id);
             term::with_tab(id, |st| st.preview_revision) != before
@@ -400,13 +400,13 @@ fn powershell_prompt_boundary_survives_conpty_redraw() {
     let metrics = super::term_diag::term_stats(id);
     let mut redraws = Vec::new();
     for cols in [24, 40, 28, 60, 16, 30] {
-        let before_revision = term::with_tab(id, |st| st.preview_revision);
         let before_active = term::with_tab(id, |st| st.pane.command_input_active());
         term::term_resize_px(
             id,
             cols as f32 * metrics.cell_w as f32,
             8.0 * metrics.cell_h as f32,
         );
+        let before_revision = term::with_tab(id, |st| st.preview_revision);
         let after_resize = term::with_tab(id, |st| st.pane.command_input_active());
         let repainted = super::term_net_tests::wait_until(REAL_SHELL_TIMEOUT, || {
             term::term_poll(id);
