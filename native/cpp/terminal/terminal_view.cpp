@@ -127,7 +127,7 @@ int qt_boot_pty(rust::Str feed_cmd, rust::Str png_out) {
     QObject::connect(&pump, &QTimer::timeout, [&view] { view.poll_and_update(); });
     pump.start(20);
 
-    // 自检时序：300ms 后喂命令 → 引擎跑输出 → 泵渲染 → 断言 + 落盘。
+    // Queue input, then wait for the computed output rather than shell startup speed.
     const std::string feed(feed_cmd.data(), feed_cmd.size());
     QTimer::singleShot(300, [&view, feed] {
         std::printf("[cpp] 喂入命令: %s\n", feed.c_str());
@@ -138,7 +138,14 @@ int qt_boot_pty(rust::Str feed_cmd, rust::Str png_out) {
     });
 
     int verdict = 1;
-    QTimer::singleShot(2600, [&] {
+    QElapsedTimer scenario_clock;
+    scenario_clock.start();
+    QTimer verify;
+    QObject::connect(&verify, &QTimer::timeout, [&] {
+        const auto text = term_screen_text(view.tab());
+        const std::string screen(text.data(), text.size());
+        if (screen.find("end-500") == std::string::npos && scenario_clock.elapsed() < 30000) return;
+        verify.stop();
         view.repaint();
         const std::string png_path(png_out.data(), png_out.size());
         if (!png_path.empty()) {
@@ -176,6 +183,7 @@ int qt_boot_pty(rust::Str feed_cmd, rust::Str png_out) {
         std::printf("[cpp] G1 PTY 自检: %s\n", verdict == 0 ? "通过" : "失败");
         app.exit(verdict);
     });
+    verify.start(25);
 
     return app.exec();
 }

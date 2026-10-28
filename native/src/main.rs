@@ -466,7 +466,8 @@ fn main() {
         println!("[rust] Qt 版本（C++ 侧上报）: {}", ffi::qt_version());
         // PowerShell 计算后输出标记行：证明子 shell 跑了且标记停在可视区。
         let feed = if cfg!(windows) {
-            r#"powershell -NoProfile -Command "'end-' + (1..500).Count""#
+            // A delayed real child protects the output-readiness wait.
+            r#"powershell -NoProfile -Command "Start-Sleep -Seconds 3; 'end-' + (1..500).Count""#
         } else {
             r#"printf 'end-%s\n' $((250 + 250))"#
         };
