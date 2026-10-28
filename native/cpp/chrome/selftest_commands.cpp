@@ -202,12 +202,14 @@ int qt_boot_commands(rust::Str png_out) {
         const QString prompt = QStringLiteral("PS ");
         // A real prompt may draw its text before restoring the input cursor.
         // Keep the production hook, but expose that window once in this fixture.
+        // The redraw targets the preceding row. Keep it off the ready marker
+        // even when a short working directory makes the prompt narrower.
         const QByteArray archive_fixture(
             "$global:ttB01ArchivePrompt=$function:prompt; $global:ttB01ArchiveOnce=$true; "
             "function global:prompt { if ($global:ttB01ArchiveOnce) { $global:ttB01ArchiveOnce=$false; "
             "$p=& $global:ttB01ArchivePrompt; [Console]::Write($p); [Console]::Write(([char]27+'7'+[char]27+'[?25h'+[char]27+'[1A!')); "
             "Start-Sleep -Milliseconds 250; [Console]::Write(([char]27+'8'+[char]27+'[1G')); return $p }; "
-            "& $global:ttB01ArchivePrompt }; Clear-Host; Write-Output ('B01_'+'ARCHIVE_READY')\r");
+            "& $global:ttB01ArchivePrompt }; Clear-Host; Write-Output ('B01_'+'ARCHIVE_READY'); Write-Output ''\r");
 #else
         draft.local_shell = "bash";
         const QByteArray shell_command("printf 'B2A_REAL_SHELL\\n'\r");
