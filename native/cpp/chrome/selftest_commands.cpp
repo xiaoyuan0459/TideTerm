@@ -269,6 +269,19 @@ int qt_boot_commands(rust::Str png_out) {
             }
             if (found || ticks >= 400) {
                 poll->stop(); ok &= found;
+                if (!found) {
+                    std::printf("[commands] prompt state fixture-sent=%d fixture-ready=%d prompt-ready=%d cursor-last=%d row=%u last-row=%d col=%u status=%u\n",
+                        fixture_sent, fixture_ready, prompt_ready, cursor_on_last, state.cursor_row,
+                        int(raw_screen.count(QLatin1Char('\n'))), state.cursor_col, unsigned(term_status_kind(shell)));
+                    const int last = int(raw_screen.count(QLatin1Char('\n')));
+                    for (int row = qMax(0, last - 3); row <= last; ++row) {
+                        const auto line = raw_screen.section(QLatin1Char('\n'), row, row);
+                        std::printf("[commands] row-shape row=%d length=%d prompt=%d delimiter=%d fixture-head=%d fixture-tail=%d bang=%d\n",
+                            row, int(line.size()), line.contains(prompt), line.trimmed().endsWith(QLatin1Char('>')),
+                            line.contains(QStringLiteral("B01_")), line.contains(QStringLiteral("ARCHIVE_READY")),
+                            line.contains(QLatin1Char('!')));
+                    }
+                }
                 if (!found) std::printf("[commands] real shell failure sent=%d blocks=%zu matched=%d finished=%d output-bytes=%zu marker=%d echo=%d cols=%u reading=%d screen-marker=%d\n",
                     sent, blocks.size(), matched, finished, output_bytes, output_contains_marker, output_contains_echo,
                     term_stats(shell).cols, term_reading(shell), q(term_screen_text(shell)).contains(QStringLiteral("B2A_REAL_SHELL")));
