@@ -3,14 +3,20 @@
 use super::sftp_model::{TransferDirection, TransferItem};
 use super::transfer_limit;
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 
-type Target = (String, bool, String);
+#[derive(Clone, PartialEq, Eq, Hash)]
+enum Target {
+    Upload(String, String),
+    Download(PathBuf),
+}
 
 #[derive(Default)]
 struct Index {
     by_id: HashMap<String, usize>,
-    active_targets: HashMap<Target, u32>,
+    active_targets: HashMap<Target, (String, u32)>,
+    targets_by_id: HashMap<String, Target>,
     counts: HashMap<String, [usize; 4]>,
 }
 
@@ -21,37 +27,55 @@ fn index() -> &'static Mutex<Index> {
 
 fn target(item: &TransferItem) -> Target {
     match item.direction {
-        TransferDirection::Upload => (item.session_id.clone(), true, item.remote_path.clone()),
-        TransferDirection::Download => (item.session_id.clone(), false, item.local_path.clone()),
+        TransferDirection::Upload => {
+            Target::Upload(item.session_id.clone(), item.remote_path.clone())
+        }
+        TransferDirection::Download => {
+            let absolute = std::path::absolute(&item.local_path)
+                .unwrap_or_else(|_| PathBuf::from(&item.local_path));
+            let path = absolute
+                .parent()
+                .and_then(|p| p.canonicalize().ok())
+                .zip(absolute.file_name())
+                .map_or_else(|| absolute.clone(), |(parent, name)| parent.join(name));
+            #[cfg(windows)]
+            let path = PathBuf::from(path.to_string_lossy().to_lowercase());
+            Target::Download(path)
+        }
     }
 }
 
 pub(super) fn reserve(item: &TransferItem) -> bool {
     let mut index = index().lock().unwrap();
     let weight = transfer_limit::weight(item.total_bytes);
-    if index.active_targets.contains_key(&target(item)) {
+    let target = target(item);
+    if index.active_targets.contains_key(&target) || index.targets_by_id.contains_key(&item.id) {
         return false;
     }
-    index.active_targets.insert(target(item), weight);
+    index
+        .active_targets
+        .insert(target.clone(), (item.session_id.clone(), weight));
+    index.targets_by_id.insert(item.id.clone(), target);
     index.counts.entry(item.session_id.clone()).or_default()[class(weight)] += 1;
     true
 }
 
 pub(super) fn release(item: &TransferItem) {
-    let mut index = index().lock().unwrap();
-    if let Some(weight) = index.active_targets.remove(&target(item))
-        && let Some(counts) = index.counts.get_mut(&item.session_id)
-    {
-        counts[class(weight)] -= 1;
-    }
+    let _ = release_id(&item.id);
 }
 
-pub(super) fn forget_session(uid: &str) {
+/// The worker owns its reservation even after disconnect marks or trims its row.
+pub(super) fn release_id(id: &str) -> Option<String> {
     let mut index = index().lock().unwrap();
-    index
-        .active_targets
-        .retain(|(session, _, _), _| session != uid);
-    index.counts.remove(uid);
+    let target = index.targets_by_id.remove(id)?;
+    let (session, weight) = index.active_targets.remove(&target)?;
+    if let Some(counts) = index.counts.get_mut(&session) {
+        counts[class(weight)] -= 1;
+        if counts.iter().all(|&count| count == 0) {
+            index.counts.remove(&session);
+        }
+    }
+    Some(session)
 }
 
 fn class(weight: u32) -> usize {
@@ -145,8 +169,42 @@ mod tests {
         release(&first);
         assert_eq!(desired("index-reservation-a"), 0);
         assert!(reserve(&duplicate));
-        forget_session("index-reservation-a");
+        release(&duplicate);
         release(&other);
+    }
+
+    #[test]
+    fn downloads_share_a_local_destination_across_sessions() {
+        let directory = tempfile::tempdir().unwrap();
+        let mut first = item("download-one", "index-download-a", "/file");
+        first.direction = TransferDirection::Download;
+        first.local_path = directory.path().join("file").to_string_lossy().into_owned();
+        let mut second = first.clone();
+        second.id = "download-two".into();
+        second.session_id = "index-download-b".into();
+        assert!(reserve(&first));
+        assert!(!reserve(&second), "two writers would share the .part file");
+        release(&first);
+        second.local_path = directory
+            .path()
+            .join("./file")
+            .to_string_lossy()
+            .into_owned();
+        #[cfg(windows)]
+        {
+            second.local_path = directory
+                .path()
+                .join("./FILE")
+                .to_string_lossy()
+                .into_owned();
+        }
+        assert!(reserve(&second));
+        release(&first);
+        assert!(
+            !reserve(&first),
+            "a stale completion must not release the new owner"
+        );
+        release(&second);
     }
 
     #[test]

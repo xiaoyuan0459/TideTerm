@@ -156,7 +156,6 @@ pub fn close_session(uid: &str) {
         item.error = Some("会话已断开".into());
         changed = true;
     }
-    transfer_index::forget_session(uid);
     super::trim_completed(&mut q, 200);
     drop(cancel);
     drop(q);

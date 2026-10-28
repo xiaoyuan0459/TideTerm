@@ -103,15 +103,6 @@ pub fn resume_transfer(id: &str) -> bool {
     true
 }
 
-#[cfg(test)]
-fn same_target(a: &TransferItem, b: &TransferItem) -> bool {
-    match (&a.direction, &b.direction) {
-        (TransferDirection::Upload, TransferDirection::Upload) => a.remote_path == b.remote_path,
-        (TransferDirection::Download, TransferDirection::Download) => a.local_path == b.local_path,
-        _ => false,
-    }
-}
-
 pub(super) fn bump() {
     transfers_version().fetch_add(1, Ordering::Relaxed);
 }
@@ -200,10 +191,10 @@ fn spawn_transfer(uid: &str, local_path: String, remote_path: String, up: bool, 
     bump();
     if !channel_ready(uid) {
         let mut q = transfers().lock().unwrap();
+        transfer_index::release(&item);
         if let Some(t) = transfer_index::position(&q, &id).and_then(|index| q.get_mut(index)) {
             t.completed = true;
             t.error = Some("SFTP 通道未打开（仅 SSH 会话支持）".into());
-            transfer_index::release(t);
         }
         trim_completed(&mut q, 200);
         bump();
@@ -340,9 +331,8 @@ pub fn sftp_download(uid: &str, remote_path: &str, local_dir: &str, size_bytes: 
 
 fn finish_transfer(id: &str, err: Option<String>) {
     let mut q = transfers().lock().unwrap();
-    let mut session_id = None;
+    let session_id = transfer_index::release_id(id);
     if let Some(t) = transfer_index::position(&q, id).and_then(|index| q.get_mut(index)) {
-        session_id = Some(t.session_id.clone());
         t.completed = true;
         if t.error.is_none() {
             t.error = err;
@@ -351,7 +341,6 @@ fn finish_transfer(id: &str, err: Option<String>) {
         if t.total_bytes == 0 {
             t.total_bytes = t.bytes_transferred;
         }
-        transfer_index::release(t);
     }
     cancels().lock().unwrap().remove(id);
     static FINISHED: AtomicU64 = AtomicU64::new(0);
@@ -371,27 +360,49 @@ mod tests {
     use super::*;
 
     #[test]
-    fn duplicate_destination_is_detected_without_blocking_other_paths() {
-        let mut first = TransferItem {
-            id: "a".into(),
-            session_id: "s".into(),
-            file_name: "x".into(),
-            direction: TransferDirection::Upload,
+    fn disconnected_download_keeps_destination_until_worker_finishes_after_row_trim() {
+        let directory = tempfile::tempdir().unwrap();
+        let first = TransferItem {
+            id: "download-disconnect-owner".into(),
+            session_id: "download-disconnect-a".into(),
+            file_name: "file".into(),
+            direction: TransferDirection::Download,
             bytes_transferred: 0,
-            total_bytes: 0,
+            total_bytes: 1,
             completed: false,
             error: None,
-            local_path: "C:/x".into(),
-            remote_path: "/x".into(),
+            local_path: directory.path().join("file").to_string_lossy().into_owned(),
+            remote_path: "/file".into(),
         };
         let mut second = first.clone();
-        second.local_path = "C:/different".into();
-        assert!(same_target(&first, &second));
-        second.remote_path = "/different".into();
-        assert!(!same_target(&first, &second));
-        first.direction = TransferDirection::Download;
-        second.direction = TransferDirection::Download;
-        second.local_path = first.local_path.clone();
-        assert!(same_target(&first, &second));
+        second.id = "download-disconnect-contender".into();
+        let control = Arc::new(TransferControl::new());
+        cancels()
+            .lock()
+            .unwrap()
+            .insert(first.id.clone(), control.clone());
+        {
+            let mut queue = transfers().lock().unwrap();
+            assert!(transfer_index::reserve(&first));
+            transfer_index::push(&first, queue.len());
+            queue.push(first.clone());
+        }
+        super::super::close_session(&first.session_id);
+        assert_eq!(control.state.load(Ordering::SeqCst), PAUSED);
+        assert!(
+            !transfer_index::reserve(&second),
+            "disconnect precedes worker shutdown"
+        );
+        {
+            let mut queue = transfers().lock().unwrap();
+            queue.retain(|item| item.id != first.id);
+            transfer_index::rebuild(&queue);
+        }
+        finish_transfer(&first.id, None);
+        assert!(
+            transfer_index::reserve(&second),
+            "trimmed rows must not leak reservations"
+        );
+        transfer_index::release(&second);
     }
 }

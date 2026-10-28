@@ -1,6 +1,30 @@
 use super::*;
 
 impl LibSshSftp {
+    pub(super) async fn update_permissions(&self, path: &str, mode: u32) -> Result<(), String> {
+        let sftp = self.sftp.clone();
+        let session = self.session.clone();
+        let gate = self.blocking_mode_gate.clone();
+        let path = path.to_owned();
+        tokio::task::spawn_blocking(move || {
+            let _mode = SftpCallGuard::new(&session, &gate)?;
+            sftp.setstat(
+                Path::new(&path),
+                ssh2::FileStat {
+                    size: None,
+                    uid: None,
+                    gid: None,
+                    perm: Some(mode & 0o7777),
+                    atime: None,
+                    mtime: None,
+                },
+            )
+            .map_err(|e| e.to_string())
+        })
+        .await
+        .map_err(|_| "SFTP permission update task failed")?
+    }
+
     pub(super) async fn update_times(
         &self,
         path: &str,

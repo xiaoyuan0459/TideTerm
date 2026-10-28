@@ -69,12 +69,12 @@ impl LibSshSftp {
     pub(super) async fn workflow_write_new(
         &self,
         path: &str,
+        mode: i32,
     ) -> Result<Box<dyn AsyncWrite + Unpin + Send>, String> {
         let sftp = self.sftp.clone();
         let session = self.session.clone();
         let gate = self.blocking_mode_gate.clone();
         let path = path.to_owned();
-        let mode = self.file_mode;
         let file = tokio::task::spawn_blocking(move || {
             let _mode = SftpCallGuard::new(&session, &gate)?;
             sftp.open_mode(

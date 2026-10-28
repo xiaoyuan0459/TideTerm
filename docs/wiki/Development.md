@@ -20,6 +20,10 @@ cargo test --manifest-path crates/tiderm-textdoc/Cargo.toml --locked
 
 不要使用跨 vendor 的 `cargo fmt --all` 意外修改上游代码。新增或修改行为的测试应保护用户行为、公共契约或生命周期，避免只检查源码字面和实现细节。真实网络测试默认隔离/忽略，显式配置测试目标后单独运行。
 
+SFTP 下载的本地目标跨会话互斥，占用保留到后台任务退出；断开会话或移除队列条目不能提前释放。远程文件替换先以 `0600` 独占创建临时文件，写入完成后恢复原 POSIX 权限，再提交替换；权限缺失、恢复失败或检测到并发 chmod 时拒绝覆盖。此流程不承诺保留 ACL、扩展属性或文件所有者。
+
+受控文件工作流测试使用 `native/tests/fixtures/daily_sftp_peer.py`；权限回归另需 POSIX 文件系统和 `--permission-fixtures`。显式配置隔离 `TEST_SSH_PORT`、`TEST_SSH_KNOWN_HOSTS` 与 `TEST_SFTP_SERVER_ROOT` 后运行 `file_jobs_remote_tests` 的 ignored 用例，验证真实 SFTP 字节、权限和失败恢复；loopback 结果不代表外部服务器互操作。
+
 ## Qt/C++ 与构建准备
 
 ```powershell

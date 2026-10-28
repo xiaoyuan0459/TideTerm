@@ -73,6 +73,20 @@ pub trait SftpTransport: Send + Sync {
         Err("SFTP exclusive streaming creation is unsupported".into())
     }
 
+    /// Exclusive creation with an explicit POSIX mode; never fall back to a wider default.
+    async fn open_write_new_with_mode(
+        &self,
+        _path: &str,
+        _mode: u32,
+    ) -> Result<Box<dyn AsyncWrite + Unpin + Send>, String> {
+        Err("SFTP creation with explicit permissions is unsupported".into())
+    }
+
+    /// Update only POSIX permission bits, preserving other metadata.
+    async fn set_permissions(&self, _path: &str, _mode: u32) -> Result<(), String> {
+        Err("SFTP permission updates are unsupported".into())
+    }
+
     /// Set timestamps; unspecified values are preserved by the server adapter.
     async fn set_times(
         &self,

@@ -13,6 +13,7 @@ import paramiko
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--directory", required=True)
+parser.add_argument("--permission-fixtures", action="store_true")
 args = parser.parse_args()
 root = Path(args.directory).resolve()
 root.mkdir(parents=True, exist_ok=True)
@@ -20,6 +21,13 @@ files = root / "files"
 files.mkdir(exist_ok=True)
 logging.getLogger("paramiko").setLevel(logging.CRITICAL)
 links = {}
+if args.permission_fixtures:
+    if os.name != "posix":
+        raise RuntimeError("permission fixtures require a POSIX filesystem")
+    for name, mode in [("private.txt", 0o600), ("executable.sh", 0o755), ("permission-denied.txt", 0o600)]:
+        path = files / name
+        path.write_bytes(b"original permission fixture")
+        path.chmod(mode)
 
 def path_for(raw):
     result = (files / str(raw).lstrip("/")).resolve()
@@ -64,7 +72,10 @@ class Files(paramiko.SFTPServerInterface):
 
     def open(self, path, flags, attr):
         try:
-            descriptor = os.open(path_for(path), flags | getattr(os, "O_BINARY", 0), 0o600)
+            descriptor = os.open(path_for(path), flags | getattr(os, "O_BINARY", 0), attr.st_mode if attr.st_mode is not None else 0o666)
+            if args.permission_fixtures and flags & os.O_CREAT:
+                with (root / "creation-modes.jsonl").open("a", encoding="utf-8") as observations:
+                    observations.write(json.dumps({"path": path, "mode": stat.S_IMODE(os.fstat(descriptor).st_mode)}) + "\n")
             mode = "r+b" if flags & os.O_RDWR else "wb" if flags & os.O_WRONLY else "rb"
             stream = os.fdopen(descriptor, mode)
             handle = paramiko.SFTPHandle(flags)
@@ -73,6 +84,15 @@ class Files(paramiko.SFTPServerInterface):
             if not flags & os.O_WRONLY:
                 handle.readfile = stream
             return handle
+        except OSError as error:
+            return failure(error)
+
+    def chattr(self, path, attr):
+        try:
+            if args.permission_fixtures and path.startswith("/permission-denied.txt.tideterm-"):
+                return paramiko.SFTP_PERMISSION_DENIED
+            paramiko.SFTPServer.set_file_attr(str(path_for(path)), attr)
+            return paramiko.SFTP_OK
         except OSError as error:
             return failure(error)
 

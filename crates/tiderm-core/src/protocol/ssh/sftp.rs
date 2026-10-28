@@ -119,7 +119,17 @@ impl SftpTransport for LibSshSftp {
         &self,
         path: &str,
     ) -> Result<Box<dyn AsyncWrite + Unpin + Send>, String> {
-        self.workflow_write_new(path).await
+        self.workflow_write_new(path, self.file_mode).await
+    }
+    async fn open_write_new_with_mode(
+        &self,
+        path: &str,
+        mode: u32,
+    ) -> Result<Box<dyn AsyncWrite + Unpin + Send>, String> {
+        self.workflow_write_new(path, (mode & 0o7777) as i32).await
+    }
+    async fn set_permissions(&self, path: &str, mode: u32) -> Result<(), String> {
+        self.update_permissions(path, mode).await
     }
     async fn symlink(&self, target: &str, link: &str) -> Result<(), String> {
         self.workflow_symlink(target, link).await

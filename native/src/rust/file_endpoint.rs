@@ -18,6 +18,7 @@ pub(super) struct Metadata {
     pub kind: u8,
     pub size: u64,
     pub modified: i128,
+    pub permissions: Option<u32>,
 }
 
 impl Endpoint {
@@ -50,6 +51,7 @@ impl Endpoint {
                         0
                     },
                     size: meta.len(),
+                    permissions: None,
                     modified: meta
                         .modified()
                         .ok()
@@ -68,6 +70,7 @@ impl Endpoint {
                     0
                 },
                 size: m.size_bytes,
+                permissions: (m.permissions & 0o170000 != 0).then_some(m.permissions & 0o7777),
                 modified: i128::from(m.modified_unix),
             })),
         }
@@ -261,6 +264,39 @@ impl Endpoint {
             .shutdown()
             .await
             .map_err(|e| e.to_string())
+    }
+    pub async fn write_replacement(
+        &self,
+        path: &str,
+        original: &Metadata,
+    ) -> Result<Box<dyn AsyncWrite + Unpin + Send>, String> {
+        self.check()?;
+        match self {
+            Self::Remote(c, _) => {
+                original
+                    .permissions
+                    .ok_or("remote permissions unavailable; refusing replacement")?;
+                c.open_write_new_with_mode(path, 0o600).await
+            }
+            Self::Local => self.write_new(path).await,
+        }
+    }
+    pub async fn preserve_replacement_permissions(
+        &self,
+        path: &str,
+        original: &Metadata,
+    ) -> Result<(), String> {
+        self.check()?;
+        if let Self::Remote(c, _) = self {
+            c.set_permissions(
+                path,
+                original
+                    .permissions
+                    .ok_or("remote permissions unavailable")?,
+            )
+            .await?;
+        }
+        Ok(())
     }
     pub async fn symlink(&self, target: &str, link: &str) -> Result<(), String> {
         self.check()?;

@@ -158,7 +158,11 @@ pub(super) async fn copy_checked(
             let mut created = false;
             let result = async {
                 let mut reader = source.read(&src).await?;
-                let mut writer = target.write_new(&stage).await?;
+                let mut writer = if let Some(original) = &previous {
+                    target.write_replacement(&stage, original).await?
+                } else {
+                    target.write_new(&stage).await?
+                };
                 created = true;
                 let mut buffer = vec![0; 65536];
                 loop {
@@ -184,6 +188,11 @@ pub(super) async fn copy_checked(
                     || target.metadata(&dst).await? != previous
                 {
                     return Err("source or destination changed during transfer".into());
+                }
+                if let Some(original) = &previous {
+                    target
+                        .preserve_replacement_permissions(&stage, original)
+                        .await?;
                 }
                 if policy == 2 && previous.is_some() {
                     target.replace_file(&stage, &dst).await
