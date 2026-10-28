@@ -1,0 +1,10 @@
+(LC_ALL=C; export LC_ALL GIT_OPTIONAL_LOCKS=0 GIT_NO_LAZY_FETCH=1 GIT_TERMINAL_PROMPT=0;
+set -o pipefail;
+tt_bound() { local v=; IFS= builtin read -r -d '' -n $(($1+1)) v || :; [[ ${#v} -le $1 ]] || return 2; builtin printf '%s' "$v"; };
+tt_git() { builtin command git --no-pager --no-replace-objects -c core.fsmonitor=false "$@"; };
+e=0; p=$(tt_git rev-parse --absolute-git-dir 2>/dev/null | tt_bound 2048) || e=1;
+r=; if [[ $e == 0 ]]; then r=$(tt_git for-each-ref '--format=%(refname)' --sort=refname --count=65 refs/heads/ refs/tags/ 2>/dev/null | tt_bound 4096) || e=2; fi;
+if [[ $e != 0 ]]; then p=; r=; fi;
+builtin printf '\033]777;tideterm-env;3;TOKEN;b;%s;' "$e";
+for ((i=0;i<${#p};i++)); do builtin printf '%02x' "'${p:i:1}"; done;
+builtin printf ';'; for ((i=0;i<${#r};i++)); do builtin printf '%02x' "'${r:i:1}"; done; builtin printf '\007')

@@ -1,0 +1,53 @@
+[package]
+name = "tiderm-core"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99"
+license = "Apache-2.0"
+description = "TideTerm de-shelled core library — pure Rust session config, auth, vault and recovery logic (no Tauri coupling)."
+publish = false
+
+# Standalone library workspace root. The Qt shell (native/) is the only path-dep
+# consumer; it carries NO tauri / slint / wgpu types, so it links into the Qt
+# workspace without a type clash (B-series de-shelling).
+[workspace]
+resolver = "3"
+
+[dependencies]
+# System monitoring reuses the version already used by memory probes.
+sysinfo = { version = "0.30", default-features = false }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+dirs = "5"
+zeroize = { version = "1", features = ["zeroize_derive"] }
+argon2 = "0.5"
+aes-gcm = "0.10"
+base64 = "0.22"
+chrono = "0.4"
+ssh2 = "0.9"
+libssh2-sys = "0.3"
+# Heapless protocol state machine; transport and filesystem policy remain in core.
+zmodem2 = "=0.7.2"
+# B-series protocol layer: local PTY shells + SSH/SFTP transports.
+portable-pty = "0.9"
+serialport = "4"
+uuid = { version = "1", features = ["v4"] }
+regex = "1.10"
+tempfile = "3"
+tokio = { version = "1", features = ["sync", "time", "macros", "rt", "rt-multi-thread", "io-util", "fs", "net", "process"] }
+tracing = "0.1"
+async-trait = "0.1"
+reqwest = { version = "0.12", features = ["json"] }
+
+# The Windows WinCNG build fails our OpenSSH/ed25519 key matrix (R-25).
+# Build the existing libssh2 OpenSSL backend statically on Windows (R-25).
+# Unix keeps the existing system OpenSSL dependency and build configuration.
+[target.'cfg(windows)'.dependencies]
+ssh2 = { version = "0.9", features = ["openssl-on-win32", "vendored-openssl"] }
+
+[dev-dependencies]
+
+[patch.crates-io]
+portable-pty = { path = "../../vendor/portable-pty" }
+# Keep standalone core builds on the same SFTP window patch as the Qt shell.
+libssh2-sys = { path = "../../vendor/libssh2-sys" }

@@ -1,0 +1,31 @@
+[package]
+name = "tiderm-textdoc"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.99"
+license = "Apache-2.0"
+publish = false
+
+# ADR-013（docs/adr/ADR-013-logstore-and-compression.md）的落地 crate：把「终端滚动历史」
+# 与「日志文件」统一到 RowProvider 契约下的存储 / 索引 / 压缩层。
+#
+# feature 矩阵（ADR-013 §Decision 1）：
+#   * `core`     —— 零 IO 叶子（RowProvider / RowRef / LineRange），**始终编译**；
+#                   `tiderm-terminal` 以 `default-features = false,
+#                   features = ["core"]` 依赖它（G4-12 硬门禁：终端引擎的 normal 依赖边
+#                   不得出现任何 IO / 压缩 crate）。
+#   * `file`     —— ByteSource / LineIndex / ChunkCache / LogDocument / BudgetPool。
+#   * `compress` —— 冷层块压缩（zstd-1；D4 未定案：离线缓存无 lz4，见探针 README）。
+[features]
+default = ["file", "compress"]
+core = []
+file = []
+compress = ["dep:zstd"]
+
+[dependencies]
+# 冷层块压缩（64 KiB 块）；固定到修复上下文复用及安全封装问题的版本。
+zstd = { version = "=0.14.3", optional = true }
+
+[[test]]
+name = "contract_file"
+required-features = ["file"]

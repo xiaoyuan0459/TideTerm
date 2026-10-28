@@ -1,0 +1,38 @@
+name: Windows Qt build environment
+description: Shared Rust, Qt and shell setup for CI, packaging and memory samples
+runs:
+  using: composite
+  steps:
+    - uses: ./.github/actions/setup-rust
+      with:
+        workspaces: native
+        cache-key: qt-6.12.0-msvc2022
+    - name: Install Qt 6.12
+      uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125 # v4.4.1
+      with:
+        version: '6.12.0'
+        host: windows
+        target: desktop
+        arch: win64_msvc2022_64
+        # Pinned aqt supports the split Windows repository used by Qt 6.12.
+        aqtsource: git+https://github.com/miurahr/aqtinstall.git@9e49c82edc6d946db376dec907cca5b4b486eec5
+        archives: qtbase qttools qtsvg qttranslations
+        setup-python: false
+        cache: true
+    - name: Validate SDK and shell environment
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = 'Stop'
+        if ($PSVersionTable.PSVersion.Major -lt 7) { throw 'PowerShell 7 is required' }
+        $gitBash = Join-Path $env:ProgramFiles 'Git/bin/bash.exe'
+        if (-not (Test-Path -LiteralPath $gitBash)) { throw 'Git Bash is required for PTY self-tests' }
+        $version = & "$env:QT_ROOT_DIR/bin/qmake.exe" -query QT_VERSION
+        if ($LASTEXITCODE -ne 0 -or $version.Trim() -ne '6.12.0') { throw "Unexpected Qt SDK: $version" }
+        if (-not (Test-Path "$env:QT_ROOT_DIR/include/QtWidgets")) { throw 'Qt Widgets headers are missing' }
+        "QT_DIR=$env:QT_ROOT_DIR" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+        . ./native/scripts/prepare-windows-build.ps1
+        foreach ($name in @('TIDETERM_BUILD_PERL','OPENSSL_SRC_PERL','LANG','LC_ALL','LC_CTYPE','_CL_','CXXFLAGS')) {
+            "$name=$([Environment]::GetEnvironmentVariable($name, 'Process'))" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+        }
+        rustc --version
+        & $gitBash --version | Select-Object -First 1

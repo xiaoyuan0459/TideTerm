@@ -1,0 +1,6 @@
+(LC_ALL=C; export LC_ALL KUBECTL_KUBERC=false MSYS2_ARG_CONV_EXCL='*'; set -o pipefail;
+builtin printf -v c '%b' 'CFGHEX'; builtin printf -v x '%b' 'CTXHEX'; builtin printf -v n '%b' 'NSHEX';
+tt_bound() { local v= s=0; IFS= builtin read -r -d '' -n 6145 v || s=$?; [[ $s == 1 && ${#v} -le 6144 ]] || return 2; builtin printf '%s' "$v"; };
+e=0; r=$(builtin command kubectl --kubeconfig "$c" --context "$x" --namespace "$n" --request-timeout=5s get RESOURCE --chunk-size=0 -o 'go-template={{range $i, $p := .items}}{{if lt $i 33}}{{printf "%q|%q|%q\n" $p.metadata.uid $p.metadata.name $p.metadata.namespace}}{{end}}{{end}}' 2>/dev/null | tt_bound) || e=1;
+if [[ $e != 0 ]]; then r=; fi; builtin printf '\033]777;tideterm-env;5;TOKEN;b;%s;SCOPEHEX;' "$e";
+for ((i=0;i<${#r};i++)); do builtin printf '%02x' "'${r:i:1}"; done; builtin printf '\007')

@@ -1,0 +1,731 @@
+{
+  "version": 1,
+  "reviewed": "2026-10-23",
+  "reference": "Command names and selected syntax facts, with original Chinese summaries. Reference data does not prove that a command is installed. No examples or completion scripts are executed.",
+  "entries": [
+    {
+      "command": "Get-ChildItem",
+      "shells": [
+        2
+      ],
+      "systems": [],
+      "summary": "列出目录项目",
+      "source": "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/get-childitem",
+      "options": [
+        "-LiteralPath",
+        "-Path",
+        "-Force",
+        "-Recurse",
+        "-File",
+        "-Directory"
+      ],
+      "reference_version": "PowerShell 5.1 / 7.x common subset",
+      "value_options": [
+        "-LiteralPath",
+        "-Path"
+      ]
+    },
+    {
+      "command": "Get-Content",
+      "shells": [
+        2
+      ],
+      "systems": [],
+      "summary": "读取文件内容",
+      "source": "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/get-content",
+      "options": [
+        "-LiteralPath",
+        "-Path",
+        "-Raw",
+        "-Tail",
+        "-Wait",
+        "-Encoding"
+      ],
+      "reference_version": "PowerShell 5.1 / 7.x common subset",
+      "value_options": [
+        "-LiteralPath",
+        "-Path",
+        "-Tail",
+        "-Encoding"
+      ]
+    },
+    {
+      "command": "Get-Item",
+      "shells": [
+        2
+      ],
+      "systems": [],
+      "summary": "查看指定项目",
+      "source": "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/get-item",
+      "options": [
+        "-LiteralPath",
+        "-Path",
+        "-Force"
+      ],
+      "reference_version": "PowerShell 5.1 / 7.x common subset",
+      "value_options": [
+        "-LiteralPath",
+        "-Path"
+      ]
+    },
+    {
+      "command": "Set-Location",
+      "shells": [
+        2
+      ],
+      "systems": [],
+      "summary": "切换当前目录",
+      "source": "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/set-location",
+      "options": [
+        "-LiteralPath",
+        "-Path",
+        "-PassThru"
+      ],
+      "reference_version": "PowerShell 5.1 / 7.x common subset",
+      "value_options": [
+        "-LiteralPath",
+        "-Path"
+      ]
+    },
+    {
+      "command": "Get-Location",
+      "shells": [
+        2
+      ],
+      "systems": [],
+      "summary": "查看当前目录",
+      "source": "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/get-location",
+      "options": [
+        "-Stack"
+      ],
+      "reference_version": "PowerShell 5.1 / 7.x common subset",
+      "value_options": []
+    },
+    {
+      "command": "Push-Location",
+      "shells": [
+        2
+      ],
+      "systems": [],
+      "summary": "保存位置并切换目录",
+      "source": "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/push-location",
+      "options": [
+        "-LiteralPath",
+        "-Path",
+        "-StackName"
+      ],
+      "reference_version": "PowerShell 5.1 / 7.x common subset",
+      "value_options": [
+        "-LiteralPath",
+        "-Path",
+        "-StackName"
+      ]
+    },
+    {
+      "command": "Pop-Location",
+      "shells": [
+        2
+      ],
+      "systems": [],
+      "summary": "返回位置栈中的目录",
+      "source": "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/pop-location",
+      "options": [
+        "-StackName"
+      ],
+      "reference_version": "PowerShell 5.1 / 7.x common subset",
+      "value_options": [
+        "-StackName"
+      ]
+    },
+    {
+      "command": "Copy-Item",
+      "shells": [
+        2
+      ],
+      "systems": [],
+      "summary": "复制项目",
+      "source": "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/copy-item",
+      "options": [
+        "-LiteralPath",
+        "-Destination",
+        "-Recurse",
+        "-Force",
+        "-WhatIf"
+      ],
+      "reference_version": "PowerShell 5.1 / 7.x common subset",
+      "value_options": [
+        "-LiteralPath",
+        "-Destination"
+      ]
+    },
+    {
+      "command": "Move-Item",
+      "shells": [
+        2
+      ],
+      "systems": [],
+      "summary": "移动项目",
+      "source": "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/move-item",
+      "options": [
+        "-LiteralPath",
+        "-Destination",
+        "-Force",
+        "-WhatIf"
+      ],
+      "reference_version": "PowerShell 5.1 / 7.x common subset",
+      "value_options": [
+        "-LiteralPath",
+        "-Destination"
+      ]
+    },
+    {
+      "command": "New-Item",
+      "shells": [
+        2
+      ],
+      "systems": [],
+      "summary": "创建文件或目录",
+      "source": "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/new-item",
+      "options": [
+        "-Path",
+        "-Name",
+        "-ItemType",
+        "-Value",
+        "-Force"
+      ],
+      "reference_version": "PowerShell 5.1 / 7.x common subset",
+      "value_options": [
+        "-Path",
+        "-Name",
+        "-ItemType",
+        "-Value"
+      ]
+    },
+    {
+      "command": "Resolve-Path",
+      "shells": [
+        2
+      ],
+      "systems": [],
+      "summary": "解析项目路径",
+      "source": "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/resolve-path",
+      "options": [
+        "-LiteralPath",
+        "-Path",
+        "-Relative"
+      ],
+      "reference_version": "PowerShell 5.1 / 7.x common subset",
+      "value_options": [
+        "-LiteralPath",
+        "-Path"
+      ]
+    },
+    {
+      "command": "Get-Process",
+      "shells": [
+        2
+      ],
+      "systems": [],
+      "summary": "查看进程",
+      "source": "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/get-process",
+      "options": [
+        "-Name",
+        "-Id"
+      ],
+      "reference_version": "PowerShell 5.1 / 7.x common subset",
+      "value_options": [
+        "-Name",
+        "-Id"
+      ]
+    },
+    {
+      "command": "Get-Command",
+      "shells": [
+        2
+      ],
+      "systems": [],
+      "summary": "查看命令信息",
+      "source": "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/get-command",
+      "options": [
+        "-Name",
+        "-CommandType",
+        "-Module",
+        "-ListImported"
+      ],
+      "reference_version": "PowerShell 5.1 / 7.x common subset",
+      "value_options": [
+        "-Name"
+      ]
+    },
+    {
+      "command": "Get-Help",
+      "shells": [
+        2
+      ],
+      "systems": [],
+      "summary": "查看命令帮助",
+      "source": "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/get-help",
+      "options": [
+        "-Name",
+        "-Examples",
+        "-Full",
+        "-Parameter"
+      ],
+      "reference_version": "PowerShell 5.1 / 7.x common subset",
+      "value_options": [
+        "-Name",
+        "-Parameter"
+      ]
+    },
+    {
+      "command": "cd",
+      "shells": [
+        1,
+        4,
+        5,
+        6
+      ],
+      "systems": [],
+      "summary": "切换当前目录",
+      "source": "https://www.gnu.org/software/bash/manual/html_node/Bourne-Shell-Builtins.html",
+      "options": [],
+      "reference_version": "Common builtin names; installed version unverified",
+      "value_options": []
+    },
+    {
+      "command": "pwd",
+      "shells": [
+        1,
+        4,
+        5,
+        6
+      ],
+      "systems": [],
+      "summary": "显示当前目录",
+      "source": "https://www.gnu.org/software/bash/manual/html_node/Bourne-Shell-Builtins.html",
+      "options": [],
+      "reference_version": "Common builtin names; installed version unverified",
+      "value_options": []
+    },
+    {
+      "command": "printf",
+      "shells": [
+        1,
+        4,
+        5,
+        6
+      ],
+      "systems": [],
+      "summary": "按格式输出文本",
+      "source": "https://www.gnu.org/s/bash/manual/html_node/Bash-Builtins.html",
+      "options": [],
+      "reference_version": "Common builtin names; installed version unverified",
+      "value_options": []
+    },
+    {
+      "command": "read",
+      "shells": [
+        1,
+        4,
+        6
+      ],
+      "systems": [],
+      "summary": "读取输入到变量",
+      "source": "https://www.gnu.org/s/bash/manual/html_node/Bash-Builtins.html",
+      "options": [],
+      "reference_version": "Common builtin names; installed version unverified",
+      "value_options": []
+    },
+    {
+      "command": "export",
+      "shells": [
+        1,
+        4,
+        6
+      ],
+      "systems": [],
+      "summary": "设置导出的环境变量",
+      "source": "https://www.gnu.org/software/bash/manual/html_node/Bourne-Shell-Builtins.html",
+      "options": [],
+      "reference_version": "Common builtin names; installed version unverified",
+      "value_options": []
+    },
+    {
+      "command": "unset",
+      "shells": [
+        1,
+        4,
+        6
+      ],
+      "systems": [],
+      "summary": "移除变量或函数",
+      "source": "https://www.gnu.org/software/bash/manual/html_node/Bourne-Shell-Builtins.html",
+      "options": [],
+      "reference_version": "Common builtin names; installed version unverified",
+      "value_options": []
+    },
+    {
+      "command": "alias",
+      "shells": [
+        1,
+        4,
+        6
+      ],
+      "systems": [],
+      "summary": "查看或定义命令别名",
+      "source": "https://www.gnu.org/software/bash/manual/html_node/Bourne-Shell-Builtins.html",
+      "options": [],
+      "reference_version": "Common builtin names; installed version unverified",
+      "value_options": []
+    },
+    {
+      "command": "command",
+      "shells": [
+        1,
+        4,
+        5,
+        6
+      ],
+      "systems": [],
+      "summary": "使用普通命令查找规则",
+      "source": "https://www.gnu.org/s/bash/manual/html_node/Bash-Builtins.html",
+      "options": [],
+      "reference_version": "Common builtin names; installed version unverified",
+      "value_options": []
+    },
+    {
+      "command": "type",
+      "shells": [
+        1
+      ],
+      "systems": [],
+      "summary": "查看 Bash 的名字解析",
+      "source": "https://www.gnu.org/s/bash/manual/html_node/Bash-Builtins.html",
+      "options": [
+        "-a",
+        "-t"
+      ],
+      "reference_version": "Common builtin names; installed version unverified",
+      "value_options": []
+    },
+    {
+      "command": "help",
+      "shells": [
+        1
+      ],
+      "systems": [],
+      "summary": "查看 Bash 内建帮助",
+      "source": "https://www.gnu.org/s/bash/manual/html_node/Bash-Builtins.html",
+      "options": [
+        "-s",
+        "-m"
+      ],
+      "reference_version": "Common builtin names; installed version unverified",
+      "value_options": []
+    },
+    {
+      "command": "shopt",
+      "shells": [
+        1
+      ],
+      "systems": [],
+      "summary": "查看或设置 Bash 选项",
+      "source": "https://www.gnu.org/s/bash/manual/html_node/The-Shopt-Builtin.html",
+      "options": [
+        "-p",
+        "-s",
+        "-u"
+      ],
+      "reference_version": "Common builtin names; installed version unverified",
+      "value_options": []
+    },
+    {
+      "command": "history",
+      "shells": [
+        1
+      ],
+      "systems": [],
+      "summary": "查看 Bash 会话历史",
+      "source": "https://www.gnu.org/s/bash/manual/html_node/Bash-History-Builtins.html",
+      "options": [],
+      "reference_version": "Common builtin names; installed version unverified",
+      "value_options": []
+    },
+    {
+      "command": "setopt",
+      "shells": [
+        4
+      ],
+      "systems": [],
+      "summary": "查看或设置 zsh 选项",
+      "source": "https://zsh.sourceforge.io/Doc/Release/Shell-Builtin-Commands.html",
+      "options": [],
+      "reference_version": "zsh current manual; installed version unverified",
+      "value_options": []
+    },
+    {
+      "command": "unsetopt",
+      "shells": [
+        4
+      ],
+      "systems": [],
+      "summary": "取消 zsh 选项",
+      "source": "https://zsh.sourceforge.io/Doc/Release/Shell-Builtin-Commands.html",
+      "options": [],
+      "reference_version": "zsh current manual; installed version unverified",
+      "value_options": []
+    },
+    {
+      "command": "whence",
+      "shells": [
+        4
+      ],
+      "systems": [],
+      "summary": "查看 zsh 的名字解析",
+      "source": "https://zsh.sourceforge.io/Doc/Release/Shell-Builtin-Commands.html",
+      "options": [],
+      "reference_version": "zsh current manual; installed version unverified",
+      "value_options": []
+    },
+    {
+      "command": "autoload",
+      "shells": [
+        4
+      ],
+      "systems": [],
+      "summary": "声明延迟加载的 zsh 函数",
+      "source": "https://zsh.sourceforge.io/Doc/Release/Shell-Builtin-Commands.html",
+      "options": [],
+      "reference_version": "zsh current manual; installed version unverified",
+      "value_options": []
+    },
+    {
+      "command": "set",
+      "shells": [
+        5
+      ],
+      "systems": [],
+      "summary": "查看或设置 fish 变量",
+      "source": "https://fishshell.com/docs/current/cmds/set.html",
+      "options": [
+        "--show",
+        "--global",
+        "--local",
+        "--export",
+        "--erase"
+      ],
+      "reference_version": "fish current manual; installed version unverified",
+      "value_options": []
+    },
+    {
+      "command": "functions",
+      "shells": [
+        5
+      ],
+      "systems": [],
+      "summary": "查看或管理 fish 函数",
+      "source": "https://fishshell.com/docs/current/cmds/functions.html",
+      "options": [
+        "--names",
+        "--details"
+      ],
+      "reference_version": "fish current manual; installed version unverified",
+      "value_options": []
+    },
+    {
+      "command": "status",
+      "shells": [
+        5
+      ],
+      "systems": [],
+      "summary": "查看 fish 当前运行状态",
+      "source": "https://fishshell.com/docs/current/cmds/status.html",
+      "options": [],
+      "reference_version": "fish current manual; installed version unverified",
+      "value_options": []
+    },
+    {
+      "command": "complete",
+      "shells": [
+        5
+      ],
+      "systems": [],
+      "summary": "管理 fish 补全定义",
+      "source": "https://fishshell.com/docs/current/cmds/complete.html",
+      "options": [
+        "--command",
+        "--path",
+        "--erase",
+        "--arguments",
+        "--description"
+      ],
+      "reference_version": "fish current manual; installed version unverified",
+      "value_options": [
+        "--command",
+        "--path",
+        "--arguments",
+        "--description"
+      ]
+    },
+    {
+      "command": "ls",
+      "shells": [
+        1,
+        4,
+        5,
+        6
+      ],
+      "systems": [
+        2
+      ],
+      "summary": "列出 Linux 目录项目",
+      "source": "https://www.gnu.org/s/coreutils/manual/html_node/ls-invocation.html",
+      "options": [
+        "-a",
+        "-l",
+        "-h",
+        "--all",
+        "--directory"
+      ],
+      "reference_version": "GNU/Linux common subset; installed version unverified",
+      "value_options": []
+    },
+    {
+      "command": "cat",
+      "shells": [
+        1,
+        4,
+        5,
+        6
+      ],
+      "systems": [
+        2
+      ],
+      "summary": "输出 Linux 文件内容",
+      "source": "https://www.gnu.org/software/coreutils/manual/html_node/cat-invocation.html",
+      "options": [
+        "-n",
+        "-b",
+        "-s",
+        "--show-all"
+      ],
+      "reference_version": "GNU/Linux common subset; installed version unverified",
+      "value_options": []
+    },
+    {
+      "command": "grep",
+      "shells": [
+        1,
+        4,
+        5,
+        6
+      ],
+      "systems": [
+        2
+      ],
+      "summary": "查找 Linux 文本匹配行",
+      "source": "https://www.gnu.org/s/grep/manual/grep.html",
+      "options": [
+        "-n",
+        "-i",
+        "-r",
+        "-l",
+        "--exclude-dir"
+      ],
+      "reference_version": "GNU/Linux common subset; installed version unverified",
+      "value_options": [
+        "--exclude-dir"
+      ]
+    },
+    {
+      "command": "cp",
+      "shells": [
+        1,
+        4,
+        5,
+        6
+      ],
+      "systems": [
+        2
+      ],
+      "summary": "复制 Linux 文件或目录",
+      "source": "https://www.gnu.org/s/coreutils/manual/html_node/cp-invocation.html",
+      "options": [
+        "-i",
+        "-p",
+        "-R",
+        "--recursive"
+      ],
+      "reference_version": "GNU/Linux common subset; installed version unverified",
+      "value_options": []
+    },
+    {
+      "command": "mv",
+      "shells": [
+        1,
+        4,
+        5,
+        6
+      ],
+      "systems": [
+        2
+      ],
+      "summary": "移动 Linux 文件或目录",
+      "source": "https://www.gnu.org/s/coreutils/manual/html_node/mv-invocation.html",
+      "options": [
+        "-i",
+        "--no-clobber"
+      ],
+      "reference_version": "GNU/Linux common subset; installed version unverified",
+      "value_options": []
+    },
+    {
+      "command": "dir",
+      "shells": [
+        3
+      ],
+      "systems": [
+        1
+      ],
+      "summary": "列出 Windows 目录项目",
+      "source": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/dir",
+      "options": [
+        "/a",
+        "/b",
+        "/s"
+      ],
+      "reference_version": "Windows 10 / 11 / Server command reference",
+      "value_options": []
+    },
+    {
+      "command": "cd",
+      "shells": [
+        3
+      ],
+      "systems": [
+        1
+      ],
+      "summary": "切换 Windows 当前目录",
+      "source": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/cd",
+      "options": [
+        "/d"
+      ],
+      "reference_version": "Windows 10 / 11 / Server command reference",
+      "value_options": []
+    },
+    {
+      "command": "type",
+      "shells": [
+        3
+      ],
+      "systems": [
+        1
+      ],
+      "summary": "输出 Windows 文本文件",
+      "source": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/type",
+      "options": [],
+      "reference_version": "Windows 10 / 11 / Server command reference",
+      "value_options": []
+    }
+  ]
+}

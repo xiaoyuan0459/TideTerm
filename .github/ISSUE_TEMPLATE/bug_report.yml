@@ -1,0 +1,28 @@
+name: Bug report / 问题反馈
+description: Report a reproducible TideTerm problem using synthetic data.
+body:
+  - type: input
+    id: environment
+    attributes:
+      label: Environment / 环境
+      description: OS, TideTerm commit or version, Debug/Release, Qt version, and local or remote protocol.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction / 复现步骤
+      description: Give the smallest steps using an isolated directory and synthetic input. Remove hosts, usernames, credentials and clipboard contents.
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior / 预期与实际行为
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Sanitized evidence / 脱敏证据
+      description: Say whether this was a real desktop interaction, controlled self-test, external service, packaged binary, or CI result. Security vulnerabilities should follow SECURITY.md.

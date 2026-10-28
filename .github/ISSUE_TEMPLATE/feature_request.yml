@@ -1,0 +1,15 @@
+name: Feature request / 功能建议
+description: Describe a terminal workflow and its expected result.
+body:
+  - type: textarea
+    id: workflow
+    attributes:
+      label: Workflow / 使用场景
+      description: Explain the operation you need, the visible result, and why the current behavior is insufficient. Check docs/ROADMAP.md for existing work.
+    validations:
+      required: true
+  - type: textarea
+    id: boundaries
+    attributes:
+      label: Scope / 范围
+      description: Include platform/protocol, failure and cancellation behavior, and whether commands or filesystem writes would be involved.

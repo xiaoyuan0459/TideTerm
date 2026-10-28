@@ -1,0 +1,15 @@
+title: ''
+labels: ['discussion']
+body:
+  - type: textarea
+    id: topic
+    attributes:
+      label: 讨论主题
+      description: 简要说明你想讨论的话题
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: 背景信息
+      description: 提供相关的使用场景、版本信息或截图

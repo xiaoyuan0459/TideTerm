@@ -1,0 +1,63 @@
+[package]
+name = "tiderm-terminal"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99"
+publish = false
+license = "MIT AND Apache-2.0"
+
+[workspace]
+resolver = "3"
+
+# Standalone terminal-engine workspace consumed by native/ through a path dependency.
+
+[dependencies]
+
+# Compact RGBA pixel storage for the framework-neutral software surface.
+rgb = "0.8"
+# ADR-013 §Decision 2（D5 已确认）：RowProvider 契约的零 IO 叶子。`default-features
+# = false` + `core` 让本 crate 只吃 RowProvider/RowRef/LineRange 三个符号 —— G4-12
+# 硬门禁：本 crate 的 normal 依赖边不得出现任何 IO / 压缩 crate（zstd 等）。
+tiderm-textdoc = { path = "../tiderm-textdoc", default-features = false, features = [
+    "core",
+] }
+# Optional framework-neutral GPU renderer. The Qt shell currently uses text spans.
+wgpu = { version = "29", optional = true }
+
+# Terminal model, VTE parser and damage tracking. The host protocol layer owns IO;
+# Alacritty types stay within the terminal engine.
+alacritty_terminal = { version = "0.26", path = "../../vendor/alacritty_terminal" }
+# G7: regex search mode for the in-pane find box (small engine, no unicode tables).
+regex-lite = "0.1"
+# Glyph rasterization (coverage masks).
+swash = "0.2"
+memmap2 = "0.9"
+# Glyph-atlas shelf packer (GPU path).
+etagere = { version = "0.2", optional = true }
+# Plain-old-data casts for instance/vertex buffers.
+bytemuck = { version = "1", features = ["derive"], optional = true }
+anyhow = "1.0.102"
+
+[dev-dependencies]
+# PNG encode for the headless font-fallback before/after verification bin only.
+png = "0.17"
+
+# Optimize deps even in dev so the software renderer is smooth in the demo.
+[profile.dev.package."*"]
+opt-level = 3
+
+[profile.dev]
+opt-level = 1
+
+# ---------------------------------------------------------------------------
+# Feature gating
+# ---------------------------------------------------------------------------
+# The Qt shell uses the dependency-free software/text-span path. Keep the optional
+# wgpu renderer framework-neutral for future QRhi interop experiments.
+[features]
+default = []
+gpu = [
+    "dep:wgpu",
+    "dep:etagere",
+    "dep:bytemuck",
+]

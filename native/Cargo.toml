@@ -1,0 +1,83 @@
+[package]
+name = "native"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99"
+license = "Apache-2.0"
+publish = false
+description = "TideTerm Qt/C++ 壳（ADR-012 ✅ Accepted）—— Rust 引擎 + QtWidgets 视图 + cxx 1.0 桥"
+
+# 独立 workspace：Qt 桌面壳主工程。
+# Phase B 骨架 —— 自 poc/qt-term-cpp（G1/G2/G3 全过；该 POC 2026-09-22 已删，取证见 git 历史）提升，模块化落位：
+#   src/ffi.rs      cxx 桥声明（POD：RawSurface/Rect/TermStats；ADR-012 铁律 2）
+#   src/rust/       引擎宿主：term.rs（TerminalPane/字体/渲染）+ session.rs（PTY 会话）
+#   src/selftest.rs G1/G2 闸门套件（离屏确定性）
+#   cpp/            Qt 视图（terminal_view = PtyView；sftp = G3 试点）+ 入口
+# 构建：cargo build（cxx 1.0 + cc 编 cpp/，Qt include/link 见 build.rs —— 三条 MSVC
+# 旗标缺一不可，见文件内「实测坑」注释）。运行需 QT bin 在 PATH（vcvars64 + Qt）。
+
+[workspace]
+resolver = "3"
+
+[dependencies]
+# MSVC has no /std:c++11 mode; use the same language level as the Qt bridge.
+cxx = { version = "1.0", features = ["c++17"] }
+# 终端引擎（ADR-012 铁律 1）：UI 框架无关的共享 Rust 库。
+tiderm-terminal = { path = "../crates/tiderm-terminal", default-features = false }
+# 存储索引面（ADR-013）：LogView（G4-B）的数据层；core feature 零 IO。
+tiderm-textdoc = { path = "../crates/tiderm-textdoc", default-features = false, features = [
+    "core",
+] }
+tokio = { version = "1", features = ["rt-multi-thread", "sync", "time", "macros", "fs", "io-util"] }
+png = "0.18"
+# Phase C ④：真实协议连接（PTY/SSH/Telnet/Serial/TCP）+ 会话持久化（SessionStore）。
+# 会话数据沿用既有 sessions.json 格式；凭据 skip_serializing 不落盘。
+tiderm-core = { path = "../crates/tiderm-core" }
+# session_store.rs 的 iso_now（sessions.json 时间戳与旧壳兼容）。
+chrono = "0.4"
+async-trait = "0.1"
+# AI 配置持久化（ai_config.json；兼容既有格式）。
+serde_json = "1"
+encoding_rs = "0.8"
+# ui_prefs.rs 复用件的 Serialize/Deserialize derive + 日志宏（损坏备份/保存失败路径）。
+serde = { version = "1", features = ["derive"] }
+tracing = "0.1"
+# 凭据库解锁态缓存（rust/vault.rs）：主密码内存副本 Zeroizing，退出即清零。
+zeroize = "1"
+# Reuse the vault's existing Argon2 version for the independent screen-lock verifier.
+argon2 = "0.5"
+tempfile = "3"
+memmap2 = "0.9"
+url = "2"
+percent-encoding = "2"
+fontdb = "0.24"
+
+[target.'cfg(windows)'.dependencies]
+# Keep native's Windows SSH backend vendored. The build adapter embeds static
+# debug symbols in each object so check/build instances do not share a PDB.
+openssl-sys = { version = "0.9", features = ["vendored"] }
+# Parse configured argv with Windows quoting rules, preserving Unicode and paths.
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_UI_Shell", "Win32_Storage_FileSystem"] }
+
+[target.'cfg(not(windows))'.dependencies]
+shell-words = "1"
+libc = "0.2"
+
+[build-dependencies]
+cxx-build = "1.0"
+pkg-config = "0.3"
+# cc 的 parallel feature **默认关闭**（cc-rs 文档 §Optional features）：不开时 cc-rs
+# 逐个 cl.exe 串行编译全部 TU，本机 96 个 .o × ~1.75s ≈ 170s 就是构建慢的主体。
+# 开启后按 $NUM_JOBS（cargo -jN 自动注入；缺省取逻辑核数）并行。
+# 必须显式声明：cxx-build → cc 那条链只开 default features，声明式 feature 会被合并。
+cc = { version = "1", features = ["parallel"] }
+
+# 保留项目定制的 SSH 接收窗实现（原 Slint workspace 的 patch 已迁至 Qt 主工程）。
+# vte 0.15.0：同步更新缓冲懒分配（上游每 Processor 预留 2 MiB ⇒ 每窗格 2 MiB 死重，
+# 详见 vendor/vte/src/ansi.rs 的 TideTerm patch 注释与路线图 §8.7）。
+[patch.crates-io]
+portable-pty = { path = "../vendor/portable-pty" }
+libssh2-sys = { path = "../vendor/libssh2-sys" }
+vte = { path = "../vendor/vte" }
+# 与 crates/tiderm-terminal 同源：原始历史窗按回滚上限分配（见 vendor/alacritty_terminal）。
+alacritty_terminal = { path = "../vendor/alacritty_terminal" }

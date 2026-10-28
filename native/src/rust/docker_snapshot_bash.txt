@@ -1,0 +1,5 @@
+(LC_ALL=C; export LC_ALL; set -o pipefail;
+tt_bound() { local v= s=0; IFS= builtin read -r -d '' -n 6145 v || s=$?; [[ $s == 1 && ${#v} -le 6144 ]] || return 2; builtin printf '%s' "$v"; };
+e=0; r=$(builtin command docker --context 'CONTEXT' container ls --all --no-trunc --last 33 --format '{{json .ID}}|{{json .Names}}' 2>/dev/null | tt_bound) || e=1;
+if [[ $e != 0 ]]; then r=; fi; builtin printf '\033]777;tideterm-env;4;TOKEN;b;%s;CONTEXT;' "$e";
+for ((i=0;i<${#r};i++)); do builtin printf '%02x' "'${r:i:1}"; done; builtin printf '\007')
