@@ -19,7 +19,9 @@
 #include <QThread>
 #include <QTimer>
 #include <QToolButton>
+#include <algorithm>
 #include <cstdio>
+#include <utility>
 
 namespace {
 QString q(const rust::String &s) { return QString::fromUtf8(s.data(), int(s.size())); }
@@ -81,8 +83,35 @@ bool verify_cached_suggestions(MainWindow &window, SendBar *bar, uint32_t tab, c
     // prove zero target input; visible screen text can legitimately scroll away.
     const bool held = bar->sent_count() == sent;
     if (!query("Tide_Query") || !show()) return false;
+    const auto saved_catalog = command_catalog();
+    auto updated_catalog = command_catalog();
+    UserCommand independent{}; independent.id = 1;
+    for (const auto &entry : updated_catalog.entries) independent.id = std::max(independent.id, entry.id + 1);
+    independent.name = "Tide_TimerIndependent"; independent.command = "Tide_TimerIndependent";
+    updated_catalog.entries.push_back(std::move(independent));
+    // A real catalog revision makes the timer re-query while the sender draft
+    // stays live. Its unrelated candidate must survive Shell receipt retirement.
+    if (command_catalog_save(updated_catalog.revision,
+            rust::Slice<const UserCommand>(updated_catalog.entries.data(), updated_catalog.entries.size())) != 0) return false;
     shell_report_clear(tab);
-    const bool retired = wait_for([&] { return !popup->isVisible(); });
+    auto independent_row = [&] {
+        for (int row = 0; row < popup->count(); ++row) {
+            const auto *item = popup->item(row);
+            if (item->data(Qt::UserRole + 1).toInt() == 1
+                && item->data(Qt::UserRole).toString() == QStringLiteral("Tide_TimerIndependent")) return true;
+        }
+        return false;
+    };
+    auto shell_row = [&] {
+        for (int row = 0; row < popup->count(); ++row)
+            if (popup->item(row)->data(Qt::UserRole + 1).toInt() == 7) return true;
+        return false;
+    };
+    const bool retired = wait_for([&] { return popup->isVisible() && !shell_row() && independent_row(); });
+    std::printf("[shell-timer] visible=%d Shell-row=%d independent-row=%d\n", popup->isVisible(), shell_row(), independent_row());
+    const auto current_catalog = command_catalog();
+    ok &= command_catalog_save(current_catalog.revision,
+        rust::Slice<const UserCommand>(saved_catalog.entries.data(), saved_catalog.entries.size())) == 0;
     if (!query("Tide_CacheMissing")) return false;
     if (!selftest_ui::activate_window(window)) return false;
     input->setFocus(); input->setText(QStringLiteral("Tide_CacheMissing")); key(Qt::Key_Space, Qt::ControlModifier);
