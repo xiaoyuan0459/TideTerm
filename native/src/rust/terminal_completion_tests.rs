@@ -274,6 +274,10 @@ fn terminal_draft_preserves_typed_trailing_spaces_before_filling() {
     term::term_close_tab(id);
 }
 
+// Allow cold PowerShell startup and asynchronous ConPTY redraw/echo on runners.
+#[cfg(windows)]
+const REAL_SHELL_TIMEOUT: Duration = Duration::from_secs(30);
+
 #[cfg(windows)]
 #[test]
 fn powershell_narrow_draft_survives_conpty_redraw() {
@@ -287,7 +291,7 @@ fn powershell_narrow_draft_survives_conpty_redraw() {
     config.meta.options.log_enabled = true;
     let id = term::open_tab_with_config(&config);
     assert!(super::term_net_tests::wait_until(
-        Duration::from_secs(8),
+        REAL_SHELL_TIMEOUT,
         || {
             term::term_poll(id);
             let state = completion::terminal_completion_query(id);
@@ -305,7 +309,7 @@ fn powershell_narrow_draft_survives_conpty_redraw() {
     resize(30);
     let draft = "echo __NARROW_DRAFT_KEEP__";
     term::term_key(id, 0, 0, draft);
-    let typed = super::term_net_tests::wait_until(Duration::from_secs(4), || {
+    let typed = super::term_net_tests::wait_until(REAL_SHELL_TIMEOUT, || {
         term::term_poll(id);
         completion::terminal_completion_query(id).query == draft
     });
@@ -314,11 +318,11 @@ fn powershell_narrow_draft_survives_conpty_redraw() {
         resize(cols);
         // ConPTY repaints the visible prompt line on resize without replaying
         // OSC B. Require that repaint to be delivered before checking the draft.
-        let repainted = super::term_net_tests::wait_until(Duration::from_secs(4), || {
+        let repainted = super::term_net_tests::wait_until(REAL_SHELL_TIMEOUT, || {
             term::term_poll(id);
             term::with_tab(id, |st| st.preview_revision) != before
         });
-        let kept = super::term_net_tests::wait_until(Duration::from_secs(4), || {
+        let kept = super::term_net_tests::wait_until(REAL_SHELL_TIMEOUT, || {
             term::term_poll(id);
             completion::terminal_completion_query(id).query == draft
         });
@@ -354,7 +358,7 @@ fn powershell_narrow_draft_survives_conpty_redraw() {
     }
     term::term_key(id, 0, 4, "c");
     assert!(super::term_net_tests::wait_until(
-        Duration::from_secs(4),
+        REAL_SHELL_TIMEOUT,
         || {
             term::term_poll(id);
             let state = completion::terminal_completion_query(id);
@@ -376,14 +380,27 @@ fn powershell_prompt_boundary_survives_conpty_redraw() {
     local.working_directory = root.path().to_str().unwrap().into();
     config.meta.options.log_enabled = true;
     let id = term::open_tab_with_config(&config);
-    let ready = super::term_net_tests::wait_until(Duration::from_secs(8), || {
+    let ready = super::term_net_tests::wait_until(REAL_SHELL_TIMEOUT, || {
         term::term_poll(id);
         let state = completion::terminal_completion_query(id);
         state.batch.context.ready && state.query.is_empty()
     });
-    assert!(ready);
+    term::with_tab(id, |st| {
+        assert!(
+            ready,
+            "startup alive={} active={} marked={} pending={} screen-len={} note-len={}",
+            st.host.alive(),
+            st.pane.command_input_active(),
+            st.pane.has_command_input_markers(),
+            st.terminal_input.is_some(),
+            st.pane.screen_text().len(),
+            st.note.borrow().len()
+        );
+    });
     let metrics = super::term_diag::term_stats(id);
+    let mut redraws = Vec::new();
     for cols in [24, 40, 28, 60, 16, 30] {
+        let before_revision = term::with_tab(id, |st| st.preview_revision);
         let before_active = term::with_tab(id, |st| st.pane.command_input_active());
         term::term_resize_px(
             id,
@@ -391,12 +408,21 @@ fn powershell_prompt_boundary_survives_conpty_redraw() {
             8.0 * metrics.cell_h as f32,
         );
         let after_resize = term::with_tab(id, |st| st.pane.command_input_active());
-        let ready = super::term_net_tests::wait_until(Duration::from_secs(4), || {
+        let repainted = super::term_net_tests::wait_until(REAL_SHELL_TIMEOUT, || {
+            term::term_poll(id);
+            term::with_tab(id, |st| st.preview_revision) != before_revision
+        });
+        let ready = super::term_net_tests::wait_until(REAL_SHELL_TIMEOUT, || {
             term::term_poll(id);
             let state = completion::terminal_completion_query(id);
             state.batch.context.ready && state.query.is_empty()
         });
-        if !ready {
+        redraws.push((
+            cols,
+            before_revision,
+            term::with_tab(id, |st| st.preview_revision),
+        ));
+        if !ready || !repainted {
             let status = super::term_log::slog_status(id);
             super::term_log::slog_stop(id);
             super::term_net_tests::wait_until(Duration::from_secs(5), || {
@@ -415,8 +441,8 @@ fn powershell_prompt_boundary_survives_conpty_redraw() {
         let context = super::command_completion::completion_context(id);
         term::with_tab(id, |st| {
             assert!(
-                ready,
-                "cols={cols} lease-before={before_active} lease-after-reflow={after_resize} base-ready={} alive={} reading={} selected={} input-active={} pending={} shell={} marked={} exact={:?} full={:?} legacy={:?} input_line={:?} screen={:?}",
+                ready && repainted,
+                "cols={cols} repainted={repainted} lease-before={before_active} lease-after-reflow={after_resize} base-ready={} alive={} reading={} selected={} input-active={} pending={} shell={} marked={} exact={:?} full={:?} legacy={:?} input_line={:?} screen={:?}",
                 context.ready, st.host.alive(), st.reading, st.pane.selection_count(), st.pane.command_input_active(), st.terminal_input.is_some(),
                 super::completion_shell::configured_kind(st),
                 st.pane.has_command_input_markers(),
@@ -430,15 +456,23 @@ fn powershell_prompt_boundary_survives_conpty_redraw() {
     }
     let command = "echo __CANCELLED_DRAFT__";
     term::term_key(id, 0, 0, command);
-    assert!(super::term_net_tests::wait_until(
-        Duration::from_secs(4),
-        || {
-            term::term_poll(id);
-            completion::terminal_completion_query(id).query == command
-        }
-    ));
+    let typed = super::term_net_tests::wait_until(REAL_SHELL_TIMEOUT, || {
+        term::term_poll(id);
+        completion::terminal_completion_query(id).query == command
+    });
+    let state = completion::terminal_completion_query(id);
+    term::with_tab(id, |st| {
+        assert!(typed,
+            "redraws={redraws:?} ready={} query-len={} active={} marked={} pending={} command-on-screen={} exact-len={} full-len={} legacy-len={}",
+            state.batch.context.ready, state.query.len(), st.pane.command_input_active(),
+            st.pane.has_command_input_markers(), st.terminal_input.is_some(),
+            st.pane.screen_text().contains(command),
+            st.pane.command_input_prefix().map_or(0, |s| s.len()),
+            st.pane.command_input_line().map_or(0, |s| s.len()),
+            st.pane.command_prefix().map_or(0, |s| s.len()));
+    });
     term::term_key(id, 0, 4, "c");
-    let cancelled = super::term_net_tests::wait_until(Duration::from_secs(4), || {
+    let cancelled = super::term_net_tests::wait_until(REAL_SHELL_TIMEOUT, || {
         term::term_poll(id);
         let state = completion::terminal_completion_query(id);
         state.batch.context.ready && state.query.is_empty()
